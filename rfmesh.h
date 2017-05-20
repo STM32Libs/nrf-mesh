@@ -8,13 +8,24 @@
 class RfMesh
 {
     public:
-        RfMesh(Serial *ps);
+    enum CallbackType {
+        Message = 0,
+        Request,
+        TxComplete,
+        CallbackCnt
+    };
+
+    public:
+        RfMesh(Serial *ps,PinName irq = NC);
         void init();
         void print_nrf();
-        void print_nrf2();
+        void attach(Callback<void()> func,CallbackType type);
+        void enable_nrf_rx_interrupt();
     public:
         nRF24L01P   nrf;
         Serial      *pser;
+        Callback<void()> _callbacks[CallbackCnt];
+        InterruptIn nRFIrq;
 };
 
 #endif /*__NRFMESH_H__*/
