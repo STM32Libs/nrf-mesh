@@ -1,9 +1,9 @@
 
-#ifndef __NRFMESH_H__
-#define __NRFMESH_H__
+#ifndef __NRFMESH__
+#define __NRFMESH__
 
 #include "mbed.h"
-#include "nRF24L01P.h"
+#include "nrf24l01p.h"
 
 class RfMesh
 {
@@ -22,10 +22,10 @@ class RfMesh
         void attach(Callback<void()> func,CallbackType type);
         void enable_nrf_rx_interrupt();
     public:
-        nRF24L01P   nrf;
+        Nrf24l01p   nrf;
         Serial      *pser;
         Callback<void()> _callbacks[CallbackCnt];
         InterruptIn nRFIrq;
 };
 
-#endif /*__NRFMESH_H__*/
+#endif /*__NRFMESH__*/
