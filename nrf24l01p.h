@@ -6,14 +6,14 @@
 
 namespace nrf
 {
-    enum Mode
+    enum class Mode
     {
         Uninitialised,
         PowerDown,
         Standby,
         Tx,
         Rx
-    }
+    };
 
     namespace reg
     {
@@ -95,13 +95,17 @@ namespace nrf
 
     namespace delay
     {
-        Tundef2pd_us =  100000 ;  // 100mS
-        Tstby2a_us   =     130 ;  // 130uS
-        Thce_us      =      10 ;  //  10uS
-        Tpd2stby_us  =    4500 ;  // 4.5mS worst case
-        Tpece2csn_us =       4 ;  //   4uS
+        int const Tundef2pd_us =  100000 ;  // 100mS
+        int const Tstby2a_us   =     130 ;  // 130uS
+        int const Thce_us      =      10 ;  //  10uS
+        int const Tpd2stby_us  =    4500 ;  // 4.5mS worst case
+        int const Tpece2csn_us =       4 ;  //   4uS
     }
     
+    namespace datarate
+    {
+        uint16_t const d_2Mbps = 2000;
+    }
     uint8_t const mode_uninitialised = 0;
     uint8_t const mode_power_down    = 1;
     uint8_t const mode_standby       = 2;
@@ -119,14 +123,28 @@ public:
     //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq 
     Nrf24l01p(PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso);
 
+    //--------------------- Level 2 - Modes ----------------------------
+    void setMode(nrf::Mode m);
+    //--------------------- Level 2 - Config ----------------------------
+    void set_DataRate();
+    void select_Channel();
+    void get_Channel();
+    void set_TxAddress();
+    void set_RxAddress();
+    //--------------------- Level 1 ----------------------------
     uint8_t writeRegister(uint8_t reg,uint8_t val);
     uint8_t readRegister(uint8_t reg);
+    uint8_t readStatus();
 
-    uint8_t writeBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
-    uint8_t readBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
+    void setbit(uint8_t reg, uint8_t bit);
+    void clearbit(uint8_t reg, uint8_t bit);
 
-    uint8_t command(uint8_t reg);
+    void writeBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
+    void readBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
 
+    void command(uint8_t reg);
+
+    //--------------------- Level 0 ----------------------------
     void ce_pin_highEnable();
     void ce_pin_lowDisable();
 
@@ -138,7 +156,7 @@ public:
     DigitalOut  csn_pin;
     DigitalOut  ce_pin;
 
-    uint8_t     mode;
+    nrf::Mode     mode;
 };
 
 

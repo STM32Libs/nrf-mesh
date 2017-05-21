@@ -8,13 +8,6 @@ static uint32_t nrf_handlers[NRF_NUM] = {0};
 
 static void nrf_donothing() {};
 
-#define _NRF24L01P_REG_STATUS                0x07
-
-#define _NRF24L01P_STATUS_MAX_RT         (1<<4)
-#define _NRF24L01P_STATUS_TX_DS          (1<<5)
-#define _NRF24L01P_STATUS_RX_DR          (1<<6)
-
-
 void nrf_irq()
 {
     //on multi instance should derive the id from the irq
@@ -23,12 +16,12 @@ void nrf_irq()
     handler->pser->printf("from nrf IRQ\n");
     handler->_callbacks[RfMesh::Message]();
     // Clear any pending interrupts
-    handler->nrf.setRegister(_NRF24L01P_REG_STATUS, _NRF24L01P_STATUS_MAX_RT|_NRF24L01P_STATUS_TX_DS|_NRF24L01P_STATUS_RX_DR);
+    handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::STATUS_MAX_RT | nrf::bit::STATUS_TX_DS | nrf::bit::STATUS_RX_DR );
 
 }
 
-RfMesh::RfMesh(Serial *ps,PinName irq):
-                            nrf(PA_7, PA_6, PA_5, PA_4, PC_15),    // mosi, miso, sck, csn, ce, irq not used here
+RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):
+                            nrf(ce, csn, sck, mosi, miso),    //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq 
                             pser(ps),
                             nRFIrq(irq)
 {
@@ -47,9 +40,9 @@ RfMesh::RfMesh(Serial *ps,PinName irq):
 void RfMesh::init()
 {
     pser->printf( "Hello Mesh .... Powering Up the nRF\r\n");
-    nrf.powerUp();
+    nrf.setMode(nrf::Mode::Standby);//PowerUp
 
-    pser->printf("setAirDataRate()\r\n");
+    /*pser->printf("setAirDataRate()\r\n");
     nrf.setAirDataRate(NRF24L01P_DATARATE_2_MBPS);
     pser->printf("setTxAddress()\r\n");
     nrf.setTxAddress(DEFAULT_NRF24L01P_ADDRESS,5);
@@ -58,37 +51,38 @@ void RfMesh::init()
     pser->printf("setCrcWidth()\r\n");
     nrf.setCrcWidth(NRF24L01P_CRC_NONE);
     nrf.setTransferSize( 32 );
+    */
 
-    enable_nrf_rx_interrupt();
+    nrf.clearbit(nrf::reg::CONFIG,nrf::bit::CONFIG_MASK_RX_DR);//enable Rx DR interrupt
 
-    nrf.setReceiveMode();
-    nrf.enable();
+    nrf.setMode(nrf::Mode::Rx);
+    nrf.ce_pin_highEnable();
     
     print_nrf();
 }
 
-#define _NRF24L01P_REG_CONFIG           0x00
-#define _NRF24L01P_CONFIG_MASK_RX_DR    (1<<6)
-#define _NRF24L01P_REG_RX_ADD_P0        0x0A
-
-void RfMesh::enable_nrf_rx_interrupt()
+void RfMesh::nrf_print_status()
 {
-    int config = nrf.getRegister(_NRF24L01P_REG_CONFIG);
-    config &= ~_NRF24L01P_CONFIG_MASK_RX_DR;
-    nrf.setRegister(_NRF24L01P_REG_CONFIG, config);
-
+    int status = nrf.readStatus();
+    pser->printf("status:0x%x - ",status);
+    int config = nrf.readRegister(nrf::reg::CONFIG);
+    pser->printf("config:0x%x - ",config);
+    int irq_status = nRFIrq.read();
+    pser->printf("irq pin %d\n",irq_status);
 }
+
 
 void RfMesh::print_nrf()
 {
     // Display the (default) setup of the nRF24L01+ chip
-    pser->printf( "nRF24L01+ Output power : %d dBm\r\n",    nrf.getRfOutputPower() );
+    /*pser->printf( "nRF24L01+ Output power : %d dBm\r\n",    nrf.getRfOutputPower() );
     pser->printf( "nRF24L01+ Frequency    : %d MHz\r\n",    nrf.getRfFrequency() );
     pser->printf( "nRF24L01+ Data Rate    : %d kbps\r\n",   nrf.getAirDataRate() );
     pser->printf( "nRF24L01+ TX Address   : 0x%010llX\r\n", nrf.getTxAddress() );
     pser->printf( "nRF24L01+ RX Address   : 0x%010llX\r\n", nrf.getRxAddress() );
+    */
     
-    int rx_lsb = nrf.getRegister(_NRF24L01P_REG_RX_ADD_P0);
+    uint8_t rx_lsb = nrf.readRegister(nrf::reg::RX_ADDR_P0);
     pser->printf( "nRF24L01+ RX Address LSB: 0x%x\r\n", rx_lsb );
 }
 

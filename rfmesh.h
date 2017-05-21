@@ -16,11 +16,11 @@ class RfMesh
     };
 
     public:
-        RfMesh(Serial *ps,PinName irq = NC);
+        RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq = NC);
         void init();
         void print_nrf();
+        void nrf_print_status();
         void attach(Callback<void()> func,CallbackType type);
-        void enable_nrf_rx_interrupt();
     public:
         Nrf24l01p   nrf;
         Serial      *pser;
