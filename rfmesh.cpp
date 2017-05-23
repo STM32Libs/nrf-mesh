@@ -14,7 +14,7 @@ void nrf_irq()
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     //decide here which irq to call
     handler->pser->printf("from nrf IRQ\n");
-    handler->_callbacks[RfMesh::Message]();
+    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)]();
     // Clear any pending interrupts
     handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::STATUS_MAX_RT | nrf::bit::STATUS_TX_DS | nrf::bit::STATUS_RX_DR );
 
@@ -42,17 +42,19 @@ void RfMesh::init()
     pser->printf( "Hello Mesh .... Powering Up the nRF\r\n");
     nrf.setMode(nrf::Mode::Standby);//PowerUp
 
-    /*pser->printf("setAirDataRate()\r\n");
-    nrf.setAirDataRate(NRF24L01P_DATARATE_2_MBPS);
-    pser->printf("setTxAddress()\r\n");
+
+    pser->printf("set_DataRate()\r\n");
+    nrf.set_DataRate(nrf::datarate::d_2Mbps);
+    pser->printf("set_CrcConfig()\r\n");
+    nrf.set_CrcConfig(nrf::crc::NoCrc);
+    /*pser->printf("setTxAddress()\r\n");
     nrf.setTxAddress(DEFAULT_NRF24L01P_ADDRESS,5);
     pser->printf("setRxAddress()\r\n");
     nrf.setRxAddress(DEFAULT_NRF24L01P_ADDRESS,5);
     pser->printf("setCrcWidth()\r\n");
-    nrf.setCrcWidth(NRF24L01P_CRC_NONE);
-    nrf.setTransferSize( 32 );
     */
 
+    nrf.setbit(nrf::reg::STATUS,nrf::bit::STATUS_RX_DR);//write one to clear status bit
     nrf.clearbit(nrf::reg::CONFIG,nrf::bit::CONFIG_MASK_RX_DR);//enable Rx DR interrupt
 
     nrf.setMode(nrf::Mode::Rx);
@@ -63,8 +65,10 @@ void RfMesh::init()
 
 void RfMesh::nrf_print_status()
 {
-    int status = nrf.readStatus();
-    pser->printf("status:0x%x - ",status);
+    //nrf.print_Status(pser->printf);
+    //int status = nrf.readStatus();
+    //pser->printf("status:0x%x - ",status);
+    nrf.print_info();
     int config = nrf.readRegister(nrf::reg::CONFIG);
     pser->printf("config:0x%x - ",config);
     int irq_status = nRFIrq.read();
@@ -86,7 +90,7 @@ void RfMesh::print_nrf()
     pser->printf( "nRF24L01+ RX Address LSB: 0x%x\r\n", rx_lsb );
 }
 
-void RfMesh::attach(Callback<void()> func,CallbackType type)
+void RfMesh::attach(Callback<void()> func,RfMesh::CallbackType type)
 {
-    _callbacks[type] = func;
+    _callbacks[static_cast<int>(type)] = func;
 }

@@ -8,11 +8,11 @@
 class RfMesh
 {
     public:
-    enum CallbackType {
+    enum class CallbackType {
         Message = 0,
-        Request,
-        TxComplete,
-        CallbackCnt
+        Request = 1,
+        TxComplete = 2,
+        CallbackCnt = 3
     };
 
     public:
@@ -24,7 +24,7 @@ class RfMesh
     public:
         Nrf24l01p   nrf;
         Serial      *pser;
-        Callback<void()> _callbacks[CallbackCnt];
+        Callback<void()> _callbacks[static_cast<int>(CallbackType::CallbackCnt)];
         InterruptIn nRFIrq;
 };
 

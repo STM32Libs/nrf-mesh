@@ -102,10 +102,20 @@ namespace nrf
         int const Tpece2csn_us =       4 ;  //   4uS
     }
     
-    namespace datarate
+    enum class datarate
     {
-        uint16_t const d_2Mbps = 2000;
-    }
+        d_2Mbps,
+        d_1Mbps,
+        d_250Kbps
+    };
+
+    enum class crc
+    {
+        NoCrc,
+        OneByte,
+        TwoBytes
+    };
+
     uint8_t const mode_uninitialised = 0;
     uint8_t const mode_power_down    = 1;
     uint8_t const mode_standby       = 2;
@@ -123,14 +133,22 @@ public:
     //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq 
     Nrf24l01p(PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso);
 
+    //--------------------- Level 3 - Info ----------------------------
+    void print_info();
+    void print_status();
+    void print_config();
+    void print_rf_setup();
+    void print_fifo_status();
+    
     //--------------------- Level 2 - Modes ----------------------------
     void setMode(nrf::Mode m);
     //--------------------- Level 2 - Config ----------------------------
-    void set_DataRate();
-    void select_Channel();
-    void get_Channel();
+    void set_DataRate(nrf::datarate dr);
+    void select_Channel(uint8_t chan);
+    uint8_t get_Channel();
     void set_TxAddress();
     void set_RxAddress();
+    void set_CrcConfig(nrf::crc c);
     //--------------------- Level 1 ----------------------------
     uint8_t writeRegister(uint8_t reg,uint8_t val);
     uint8_t readRegister(uint8_t reg);
