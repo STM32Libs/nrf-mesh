@@ -19,12 +19,11 @@ class RfMesh
         RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq = NC);
         void init();
         void print_nrf();
-        void nrf_print_status();
-        void attach(Callback<void()> func,CallbackType type);
+        void attach(Callback<void(uint8_t *data,uint8_t size)> func,CallbackType type);
     public:
         Nrf24l01p   nrf;
         Serial      *pser;
-        Callback<void()> _callbacks[static_cast<int>(CallbackType::CallbackCnt)];
+        Callback<void(uint8_t *data,uint8_t size)> _callbacks[static_cast<int>(CallbackType::CallbackCnt)];
         InterruptIn nRFIrq;
 };
 

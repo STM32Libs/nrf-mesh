@@ -79,13 +79,31 @@ namespace nrf
         uint8_t const RF_SETUP_RF_DR_250KBPS     =   (1<<5);
         uint8_t const RF_SETUP_RF_DR_1MBPS       =   (0);
         uint8_t const RF_SETUP_RF_DR_2MBPS       =   (1<<3);
+
+        uint8_t const RF_SETUP_PLL_LOCK          =   (1<<4);
+        uint8_t const RF_SETUP_CONT_WAVE          =   (1<<7);
+
+        uint8_t const FIFO_STATUS_RX_EMPTY          =   (1<<0);
+        uint8_t const FIFO_STATUS_RX_FULL           =   (1<<1);
+        uint8_t const FIFO_STATUS_TX_EMPTY          =   (1<<4);
+        uint8_t const FIFO_STATUS_TX_FULL           =   (1<<5);
+        uint8_t const FIFO_STATUS_TX_REUSE          =   (1<<6);
+        
+        uint8_t const EN_RXADD_ERX_P0               =   (1<<0);
+        uint8_t const EN_RXADD_ERX_P1               =   (1<<1);
+        uint8_t const EN_RXADD_ERX_P2               =   (1<<2);
+        uint8_t const EN_RXADD_ERX_P3               =   (1<<3);
+        uint8_t const EN_RXADD_ERX_P4               =   (1<<4);
+        uint8_t const EN_RXADD_ERX_P5               =   (1<<5);
+
+
     }
     namespace cmd
     {
         uint8_t const READ_REG       = 0x00;  // Define read command to register
         uint8_t const WRITE_REG      = 0x20;  // Define write command to register
-        uint8_t const RD_RX_PLOAD    = 0x61;  // Define RX payload register address
-        uint8_t const WR_TX_PLOAD    = 0xA0;  // Define TX payload register address
+        uint8_t const R_RX_PLOAD    = 0x61;  // Define RX payload register address
+        uint8_t const W_TX_PLOAD    = 0xA0;  // Define TX payload register address
         uint8_t const FLUSH_TX       = 0xE1;  // Define flush TX register command
         uint8_t const FLUSH_RX       = 0xE2;  // Define flush RX register command
         uint8_t const REUSE_TX_PL    = 0xE3;  // Define reuse TX payload register command
@@ -139,16 +157,25 @@ public:
     void print_config();
     void print_rf_setup();
     void print_fifo_status();
+
+    void dump_regs();
     
     //--------------------- Level 2 - Modes ----------------------------
     void setMode(nrf::Mode m);
     //--------------------- Level 2 - Config ----------------------------
-    void set_DataRate(nrf::datarate dr);
-    void select_Channel(uint8_t chan);
-    uint8_t get_Channel();
-    void set_TxAddress();
-    void set_RxAddress();
-    void set_CrcConfig(nrf::crc c);
+    void setDataRate(nrf::datarate dr);
+    void selectChannel(uint8_t chan);
+    uint8_t getChannel();
+    void setTxAddress();
+    void setRxAddress();
+    void setCrcConfig(nrf::crc c);
+    void disableAutoAcknowledge();
+    void enableAutoAcknowledge(uint8_t bits);
+    void enableRxPipes(uint8_t bits);
+    void disableRxPipes();
+    void disableRetransmission();
+    void setPipeWidth(uint8_t pipe, uint8_t width);
+    
     //--------------------- Level 1 ----------------------------
     uint8_t writeRegister(uint8_t reg,uint8_t val);
     uint8_t readRegister(uint8_t reg);
@@ -160,6 +187,7 @@ public:
     void writeBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
     void readBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
 
+    //used for commands without values, otherwise writeRegister is used
     void command(uint8_t reg);
 
     //--------------------- Level 0 ----------------------------

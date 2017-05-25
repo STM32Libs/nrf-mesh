@@ -6,15 +6,43 @@
 
 static uint32_t nrf_handlers[NRF_NUM] = {0};
 
-static void nrf_donothing() {};
+static void nrf_donothing(uint8_t *data,uint8_t size) {};
 
 void nrf_irq()
 {
     //on multi instance should derive the id from the irq
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     //decide here which irq to call
-    handler->pser->printf("from nrf IRQ\n");
-    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)]();
+    uint8_t status = handler->nrf.readStatus();
+
+    if(status & nrf::bit::STATUS_RX_DR)
+    {
+        uint8_t rx_pipe_nb = (status & nrf::bit::STATUS_RX_P_NO)>>1;
+        uint8_t max_reread = 100;//just to avoid infinite loop, but with such a number loss is already likely
+        while((rx_pipe_nb != 0x07) && (--max_reread!=0))//while RX_FIFO Not Empty
+        {
+            uint8_t data[32];
+            #ifdef NRF_DYNAMIC_PAYLOAD
+            uint8_t size = readRegister(nrf::cmd::R_RX_PL_WID);
+            if(size > 32)
+            {
+                handler->nrf.writeRegister(nrf::cmd::FLUSH_RX);
+            }
+            #else
+            uint8_t size = 32;
+            #endif
+            handler->nrf.readBuffer(nrf::cmd::R_RX_PLOAD,data,size);
+            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,size);
+            //reread the status to check if you need to get another buffer
+            status = handler->nrf.readStatus();
+            rx_pipe_nb = (status & nrf::bit::STATUS_RX_P_NO)>>1;
+        }
+        if(max_reread == 0)
+        {
+            //do something as we might have been stuck or Under DoS Attack
+        }
+    }
+
     // Clear any pending interrupts
     handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::STATUS_MAX_RT | nrf::bit::STATUS_TX_DS | nrf::bit::STATUS_RX_DR );
 
@@ -39,14 +67,36 @@ RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, Pi
 
 void RfMesh::init()
 {
-    pser->printf( "Hello Mesh .... Powering Up the nRF\r\n");
+    wait_ms(100);//Let the Power get stable
+
+    pser->printf("Hello Mesh .... nRF24L01+ Dump :\r\n");
+    print_nrf();
+
+    pser->printf("Configuration\r\n");
+    nrf.setMode(nrf::Mode::PowerDown);//Power Down
+
+    //Flush any previously used RX and TX FIFOs
+    pser->printf("Flushing Buffers\r\n");
+    nrf.command(nrf::cmd::FLUSH_TX);
+    nrf.command(nrf::cmd::FLUSH_RX);
+    nrf.setbit(nrf::reg::STATUS,nrf::bit::STATUS_RX_DR);//write one to clear status bit
+    nrf.clearbit(nrf::reg::CONFIG,nrf::bit::CONFIG_MASK_RX_DR);//enable Rx DR interrupt
+
+    nrf.disableAutoAcknowledge();
+    nrf.disableRetransmission();
+
+    nrf.enableRxPipes(nrf::bit::EN_RXADD_ERX_P0);
+    nrf.setPipeWidth(0,32);
+
+
+    pser->printf("Power Up\r\n");
     nrf.setMode(nrf::Mode::Standby);//PowerUp
 
 
     pser->printf("set_DataRate()\r\n");
-    nrf.set_DataRate(nrf::datarate::d_2Mbps);
+    nrf.setDataRate(nrf::datarate::d_2Mbps);
     pser->printf("set_CrcConfig()\r\n");
-    nrf.set_CrcConfig(nrf::crc::NoCrc);
+    nrf.setCrcConfig(nrf::crc::NoCrc);
     /*pser->printf("setTxAddress()\r\n");
     nrf.setTxAddress(DEFAULT_NRF24L01P_ADDRESS,5);
     pser->printf("setRxAddress()\r\n");
@@ -54,43 +104,23 @@ void RfMesh::init()
     pser->printf("setCrcWidth()\r\n");
     */
 
-    nrf.setbit(nrf::reg::STATUS,nrf::bit::STATUS_RX_DR);//write one to clear status bit
-    nrf.clearbit(nrf::reg::CONFIG,nrf::bit::CONFIG_MASK_RX_DR);//enable Rx DR interrupt
 
     nrf.setMode(nrf::Mode::Rx);
     nrf.ce_pin_highEnable();
     
-    print_nrf();
 }
 
-void RfMesh::nrf_print_status()
+
+void RfMesh::attach(Callback<void(uint8_t *data,uint8_t size)> func,RfMesh::CallbackType type)
 {
-    //nrf.print_Status(pser->printf);
-    //int status = nrf.readStatus();
-    //pser->printf("status:0x%x - ",status);
+    _callbacks[static_cast<int>(type)] = func;
+}
+
+void RfMesh::print_nrf()
+{
+    nrf.dump_regs();
     nrf.print_info();
-    int config = nrf.readRegister(nrf::reg::CONFIG);
-    pser->printf("config:0x%x - ",config);
     int irq_status = nRFIrq.read();
     pser->printf("irq pin %d\n",irq_status);
 }
 
-
-void RfMesh::print_nrf()
-{
-    // Display the (default) setup of the nRF24L01+ chip
-    /*pser->printf( "nRF24L01+ Output power : %d dBm\r\n",    nrf.getRfOutputPower() );
-    pser->printf( "nRF24L01+ Frequency    : %d MHz\r\n",    nrf.getRfFrequency() );
-    pser->printf( "nRF24L01+ Data Rate    : %d kbps\r\n",   nrf.getAirDataRate() );
-    pser->printf( "nRF24L01+ TX Address   : 0x%010llX\r\n", nrf.getTxAddress() );
-    pser->printf( "nRF24L01+ RX Address   : 0x%010llX\r\n", nrf.getRxAddress() );
-    */
-    
-    uint8_t rx_lsb = nrf.readRegister(nrf::reg::RX_ADDR_P0);
-    pser->printf( "nRF24L01+ RX Address LSB: 0x%x\r\n", rx_lsb );
-}
-
-void RfMesh::attach(Callback<void()> func,RfMesh::CallbackType type)
-{
-    _callbacks[static_cast<int>(type)] = func;
-}
