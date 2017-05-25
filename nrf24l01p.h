@@ -46,57 +46,66 @@ namespace nrf
     }
     namespace bit
     {
-        uint8_t const RF_CH_Mask            = 0x7F;
+        uint8_t const RF_CH_Mask        = 0x7F;
 
-        uint8_t const CONFIG_Mask_Reserved  =	0x7F;
-        uint8_t const CONFIG_PRIM_RX		=	(1<<0);
-        uint8_t const CONFIG_PWR_UP			=   (1<<1);
-        uint8_t const CONFIG_CRCO			=   (1<<2);
-        uint8_t const CONFIG_EN_CRC			=   (1<<3);
-        uint8_t const CONFIG_MASK_MAX_RT	=	(1<<4);
-        uint8_t const CONFIG_MASK_TX_DS		=   (1<<5);
-        uint8_t const CONFIG_MASK_RX_DR	    =	(1<<6);
+        namespace config
+        {
+            uint8_t const Mask_Reserved =	0x7F;
+            uint8_t const PRIM_RX		=	(1<<0);
+            uint8_t const PWR_UP		=   (1<<1);
+            uint8_t const CRCO			=   (1<<2);
+            uint8_t const EN_CRC		=   (1<<3);
+            uint8_t const MASK_MAX_RT	=	(1<<4);
+            uint8_t const MASK_TX_DS	=   (1<<5);
+            uint8_t const MASK_RX_DR	=	(1<<6);
 
-        uint8_t const CONFIG_neg_EN_CRC		=   (~0x08);
-        uint8_t const CONFIG_neg_PWR_UP		=   (~0x02);
-        uint8_t const CONFIG_neg_PRIM_RX	=   (~0x01);
+            uint8_t const neg_EN_CRC	=   (~0x08);
+            uint8_t const neg_PWR_UP	=   (~0x02);
+            uint8_t const neg_PRIM_RX	=   (~0x01);
+        }
+        namespace status
+        {
+            uint8_t const TX_FULL        =   (1<<0);
+            uint8_t const RX_P_NO        =   (0x7<<1);
+            uint8_t const MAX_RT         =   (1<<4);
+            uint8_t const TX_DS          =   (1<<5);
+            uint8_t const RX_DR          =   (1<<6);
+        }
+        namespace rf_setup
+        {
+            uint8_t const RF_PWR_MASK       =   (0x3<<1);
+            uint8_t const RF_PWR_MIN_18DBM  =   (0x0<<1);
+            uint8_t const RF_PWR_MIN_12DBM  =   (0x1<<1);
+            uint8_t const RF_PWR_MIN_6DBM   =   (0x2<<1);
+            uint8_t const RF_PWR_0DBM       =   (0x3<<1);
 
-        uint8_t const STATUS_TX_FULL        =   (1<<0);
-        uint8_t const STATUS_RX_P_NO        =   (0x7<<1);
-        uint8_t const STATUS_MAX_RT         =   (1<<4);
-        uint8_t const STATUS_TX_DS          =   (1<<5);
-        uint8_t const STATUS_RX_DR          =   (1<<6);
+            uint8_t const RF_DR_HIGH_BIT    =   (1 << 3);
+            uint8_t const RF_DR_LOW_BIT     =   (1 << 5);
+            uint8_t const RF_DR_MASK        =   ((1 << 3)|(1 << 5));
+            uint8_t const RF_DR_250KBPS     =   (1<<5);
+            uint8_t const RF_DR_1MBPS       =   (0);
+            uint8_t const RF_DR_2MBPS       =   (1<<3);
 
-        uint8_t const RF_SETUP_RF_PWR_MASK       =   (0x3<<1);
-        uint8_t const RF_SETUP_RF_PWR_MIN_18DBM  =   (0x0<<1);
-        uint8_t const RF_SETUP_RF_PWR_MIN_12DBM  =   (0x1<<1);
-        uint8_t const RF_SETUP_RF_PWR_MIN_6DBM   =   (0x2<<1);
-        uint8_t const RF_SETUP_RF_PWR_0DBM       =   (0x3<<1);
-
-        uint8_t const RF_SETUP_RF_DR_HIGH_BIT    =   (1 << 3);
-        uint8_t const RF_SETUP_RF_DR_LOW_BIT     =   (1 << 5);
-        uint8_t const RF_SETUP_RF_DR_MASK        =   ((1 << 3)|(1 << 5));
-        uint8_t const RF_SETUP_RF_DR_250KBPS     =   (1<<5);
-        uint8_t const RF_SETUP_RF_DR_1MBPS       =   (0);
-        uint8_t const RF_SETUP_RF_DR_2MBPS       =   (1<<3);
-
-        uint8_t const RF_SETUP_PLL_LOCK          =   (1<<4);
-        uint8_t const RF_SETUP_CONT_WAVE          =   (1<<7);
-
-        uint8_t const FIFO_STATUS_RX_EMPTY          =   (1<<0);
-        uint8_t const FIFO_STATUS_RX_FULL           =   (1<<1);
-        uint8_t const FIFO_STATUS_TX_EMPTY          =   (1<<4);
-        uint8_t const FIFO_STATUS_TX_FULL           =   (1<<5);
-        uint8_t const FIFO_STATUS_TX_REUSE          =   (1<<6);
-        
-        uint8_t const EN_RXADD_ERX_P0               =   (1<<0);
-        uint8_t const EN_RXADD_ERX_P1               =   (1<<1);
-        uint8_t const EN_RXADD_ERX_P2               =   (1<<2);
-        uint8_t const EN_RXADD_ERX_P3               =   (1<<3);
-        uint8_t const EN_RXADD_ERX_P4               =   (1<<4);
-        uint8_t const EN_RXADD_ERX_P5               =   (1<<5);
-
-
+            uint8_t const PLL_LOCK          =   (1<<4);
+            uint8_t const CONT_WAVE         =   (1<<7);
+        }
+        namespace fifo_status
+        {
+            uint8_t const RX_EMPTY          =   (1<<0);
+            uint8_t const RX_FULL           =   (1<<1);
+            uint8_t const TX_EMPTY          =   (1<<4);
+            uint8_t const TX_FULL           =   (1<<5);
+            uint8_t const TX_REUSE          =   (1<<6);
+        }
+        namespace en_rxadd
+        {
+            uint8_t const ERX_P0            =   (1<<0);
+            uint8_t const ERX_P1            =   (1<<1);
+            uint8_t const ERX_P2            =   (1<<2);
+            uint8_t const ERX_P3            =   (1<<3);
+            uint8_t const ERX_P4            =   (1<<4);
+            uint8_t const ERX_P5            =   (1<<5);
+        }
     }
     namespace cmd
     {

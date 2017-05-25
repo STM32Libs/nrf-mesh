@@ -15,9 +15,9 @@ void nrf_irq()
     //decide here which irq to call
     uint8_t status = handler->nrf.readStatus();
 
-    if(status & nrf::bit::STATUS_RX_DR)
+    if(status & nrf::bit::status::RX_DR)
     {
-        uint8_t rx_pipe_nb = (status & nrf::bit::STATUS_RX_P_NO)>>1;
+        uint8_t rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;
         uint8_t max_reread = 100;//just to avoid infinite loop, but with such a number loss is already likely
         while((rx_pipe_nb != 0x07) && (--max_reread!=0))//while RX_FIFO Not Empty
         {
@@ -35,7 +35,7 @@ void nrf_irq()
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,size);
             //reread the status to check if you need to get another buffer
             status = handler->nrf.readStatus();
-            rx_pipe_nb = (status & nrf::bit::STATUS_RX_P_NO)>>1;
+            rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;
         }
         if(max_reread == 0)
         {
@@ -44,7 +44,7 @@ void nrf_irq()
     }
 
     // Clear any pending interrupts
-    handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::STATUS_MAX_RT | nrf::bit::STATUS_TX_DS | nrf::bit::STATUS_RX_DR );
+    handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::status::MAX_RT | nrf::bit::status::TX_DS | nrf::bit::status::RX_DR );
 
 }
 
@@ -79,13 +79,13 @@ void RfMesh::init()
     pser->printf("Flushing Buffers\r\n");
     nrf.command(nrf::cmd::FLUSH_TX);
     nrf.command(nrf::cmd::FLUSH_RX);
-    nrf.setbit(nrf::reg::STATUS,nrf::bit::STATUS_RX_DR);//write one to clear status bit
-    nrf.clearbit(nrf::reg::CONFIG,nrf::bit::CONFIG_MASK_RX_DR);//enable Rx DR interrupt
+    nrf.setbit(nrf::reg::STATUS,nrf::bit::status::RX_DR);//write one to clear status bit
+    nrf.clearbit(nrf::reg::CONFIG,nrf::bit::config::MASK_RX_DR);//enable Rx DR interrupt
 
     nrf.disableAutoAcknowledge();
     nrf.disableRetransmission();
 
-    nrf.enableRxPipes(nrf::bit::EN_RXADD_ERX_P0);
+    nrf.enableRxPipes(nrf::bit::en_rxadd::ERX_P0);
     nrf.setPipeWidth(0,32);
 
 
