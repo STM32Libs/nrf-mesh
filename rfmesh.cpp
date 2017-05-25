@@ -49,7 +49,8 @@ void nrf_irq()
 }
 
 RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):
-                            nrf(ce, csn, sck, mosi, miso),    //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq 
+                            //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq
+                            nrf(ps, ce, csn, sck, mosi, miso),
                             pser(ps),
                             nRFIrq(irq)
 {

@@ -1,14 +1,12 @@
 
 #include "nrf24l01p.h"
 
-Serial   pr(PB_10, PB_11, 115200);
-
-
-Nrf24l01p::Nrf24l01p(PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso):
+Nrf24l01p::Nrf24l01p(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso):
                 spi(mosi,miso,sck),
                 csn_pin(csn),
                 ce_pin(ce),
-                mode(nrf::Mode::Uninitialised)
+                mode(nrf::Mode::Uninitialised),
+                pr(ps)
 {
     //spi default @10 Mbps
     ce_pin_lowDisable();
@@ -310,104 +308,104 @@ void Nrf24l01p::print_info()
 void Nrf24l01p::print_status()
 {
     uint8_t status = readStatus();
-    pr.printf("STATUS 0x%02x : ",status);
+    pr->printf("STATUS 0x%02x : ",status);
     if(status & nrf::bit::status::TX_FULL)
     {
-        pr.printf("Tx FIFO full - ");
+        pr->printf("Tx FIFO full - ");
     }
     else
     {
-        pr.printf("Tx FIFO Free - ");
+        pr->printf("Tx FIFO Free - ");
     }
     if((status & nrf::bit::status::RX_P_NO) == nrf::bit::status::RX_P_NO)
     {
-        pr.printf("Rx FIFO Empty - ");
+        pr->printf("Rx FIFO Empty - ");
     }
     else
     {
         uint8_t pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;
-        pr.printf("Rx Available @ %d - ",pipe_nb);
+        pr->printf("Rx Available @ %d - ",pipe_nb);
     }
     bool interrupt_pending = false;
     if(status & nrf::bit::status::MAX_RT)
     {
         interrupt_pending = true;
-        pr.printf("<INT> MAX_RT  - ");
+        pr->printf("<INT> MAX_RT  - ");
     }
     if(status & nrf::bit::status::TX_DS)
     {
         interrupt_pending = true;
-        pr.printf("<INT> Tx_DS  - ");
+        pr->printf("<INT> Tx_DS  - ");
     }
     if(status & nrf::bit::status::RX_DR)
     {
         interrupt_pending = true;
-        pr.printf("<INT> RX_DR  - ");
+        pr->printf("<INT> RX_DR  - ");
     }
     if(interrupt_pending == false)
     {
-        pr.printf("No <INT>");
+        pr->printf("No <INT>");
     }
-    pr.printf("\n");
+    pr->printf("\n");
 }
 
 void Nrf24l01p::print_config()
 {
     uint8_t config = readRegister(nrf::reg::CONFIG);
-    pr.printf("CONFIG 0x%02x : ",config);
+    pr->printf("CONFIG 0x%02x : ",config);
     if(config & nrf::bit::config::PRIM_RX)
     {
-        pr.printf("Rx Mode - ");
+        pr->printf("Rx Mode - ");
     }
     else
     {
-        pr.printf("Tx Mode - ");
+        pr->printf("Tx Mode - ");
     }
     if(config & nrf::bit::config::PWR_UP)
     {
-        pr.printf("Power Up - ");
+        pr->printf("Power Up - ");
     }
     else
     {
-        pr.printf("Power Down - ");
+        pr->printf("Power Down - ");
     }
     if(config & nrf::bit::config::EN_CRC)
     {
-        pr.printf("CRC Enabled : ");
+        pr->printf("CRC Enabled : ");
         if(config & nrf::bit::config::CRCO)
         {
-            pr.printf("2 Bytes - ");
+            pr->printf("2 Bytes - ");
         }
         else
         {
-            pr.printf("1 Byte - ");
+            pr->printf("1 Byte - ");
         }
     }
     else
     {
-        pr.printf("CRC Disabled - ");
+        pr->printf("CRC Disabled - ");
     }
     bool interrupt_enabled = false;
     if((config & nrf::bit::config::MASK_MAX_RT) == 0)
     {
         interrupt_enabled = true;
-        pr.printf("[INT] MAX_RT  - ");
+        pr->printf("[INT] MAX_RT  - ");
     }
     if((config & nrf::bit::config::MASK_TX_DS) == 0)
     {
         interrupt_enabled = true;
-        pr.printf("[INT] TX_DS  - ");
+        pr->printf("[INT] TX_DS  - ");
     }
     if((config & nrf::bit::config::MASK_RX_DR) == 0)
     {
         interrupt_enabled = true;
-        pr.printf("[INT] RX_DR  - ");
+        pr->printf("[INT] RX_DR  - ");
     }
     if(!interrupt_enabled)
     {
-        pr.printf("No Interrupt Enabled");
+        pr->printf("No Interrupt Enabled");
     }
-    pr.printf("\n");
+    pr->printf("\n");
     
     
 }
@@ -415,94 +413,94 @@ void Nrf24l01p::print_config()
 void Nrf24l01p::print_rf_setup()
 {
     uint8_t rf_setup = readRegister(nrf::reg::RF_SETUP);
-    pr.printf("RF_SETUP 0x%02x : ",rf_setup);
+    pr->printf("RF_SETUP 0x%02x : ",rf_setup);
     uint8_t pwr = rf_setup & nrf::bit::rf_setup::RF_PWR_MASK;
     switch(pwr)
     {
         case nrf::bit::rf_setup::RF_PWR_MIN_18DBM :
         {
-            pr.printf("PWR -18dBm - ");
+            pr->printf("PWR -18dBm - ");
         }break;
         case nrf::bit::rf_setup::RF_PWR_MIN_12DBM :
         {
-            pr.printf("PWR -12dBm - ");
+            pr->printf("PWR -12dBm - ");
         }break;
         case nrf::bit::rf_setup::RF_PWR_MIN_6DBM :
         {
-            pr.printf("PWR -6dBm - ");
+            pr->printf("PWR -6dBm - ");
         }break;
         case nrf::bit::rf_setup::RF_PWR_0DBM :
         {
-            pr.printf("PWR 0dBm - ");
+            pr->printf("PWR 0dBm - ");
         }break;
     };
     if(rf_setup & nrf::bit::rf_setup::RF_DR_LOW_BIT)
     {
-        pr.printf("DR 250Kbps - ");
+        pr->printf("DR 250Kbps - ");
     }
     else
     {
         if(rf_setup & nrf::bit::rf_setup::RF_DR_HIGH_BIT)
         {
-            pr.printf("DR 2Mbps - ");
+            pr->printf("DR 2Mbps - ");
         }
         else
         {
-            pr.printf("DR 1Mbps - ");
+            pr->printf("DR 1Mbps - ");
         }
     }
     if(rf_setup & nrf::bit::rf_setup::PLL_LOCK)
     {
-        pr.printf("PLL Lock Forced - ");
+        pr->printf("PLL Lock Forced - ");
     }
     if(rf_setup & nrf::bit::rf_setup::CONT_WAVE)
     {
-        pr.printf("Continuous Carrier");
+        pr->printf("Continuous Carrier");
     }
-    pr.printf("\n");
+    pr->printf("\n");
 }
 
 void Nrf24l01p::print_fifo_status()
 {
     int8_t fifo_status = readRegister(nrf::reg::FIFO_STATUS);
-    pr.printf("FIFO_STATUS 0x%02x : ",fifo_status);
+    pr->printf("FIFO_STATUS 0x%02x : ",fifo_status);
     if(fifo_status & nrf::bit::fifo_status::RX_EMPTY)
     {
-        pr.printf("RX Empty - ");
+        pr->printf("RX Empty - ");
     }
     else
     {
-        pr.printf("Data in RX - ");
+        pr->printf("Data in RX - ");
     }
     if(fifo_status & nrf::bit::fifo_status::RX_FULL)
     {
-        pr.printf("RX Full - ");
+        pr->printf("RX Full - ");
     }
     else
     {
-        pr.printf("Available RX - ");
+        pr->printf("Available RX - ");
     }
     if(fifo_status & nrf::bit::fifo_status::TX_EMPTY)
     {
-        pr.printf("TX Empty - ");
+        pr->printf("TX Empty - ");
     }
     else
     {
-        pr.printf("Data in TX - ");
+        pr->printf("Data in TX - ");
     }
     if(fifo_status & nrf::bit::fifo_status::TX_FULL)
     {
-        pr.printf("TX Full - ");
+        pr->printf("TX Full - ");
     }
     else
     {
-        pr.printf("Available TX - ");
+        pr->printf("Available TX - ");
     }
     if(fifo_status & nrf::bit::fifo_status::TX_REUSE)
     {
-        pr.printf("TX Reuse");
+        pr->printf("TX Reuse");
     }
-    pr.printf("\n");
+    pr->printf("\n");
 }
 
 void Nrf24l01p::dump_regs()
@@ -510,25 +508,25 @@ void Nrf24l01p::dump_regs()
     for(uint8_t add=0;add<=0x09;add++)
     {
         uint8_t val = readRegister(add);
-        pr.printf("0x%02x : 0x%02x\n",add,val);
+        pr->printf("0x%02x : 0x%02x\n",add,val);
     }
     for(uint8_t add=0x0A;add<=0x0B;add++)
     {
         uint8_t vals[5];
         readBuffer(add, vals,5);
-        pr.printf("0x%02x : ",add);
+        pr->printf("0x%02x : ",add);
         for(int i=0;i<5;i++)
         {
-            pr.printf("0x%02x ",vals[i]);
+            pr->printf("0x%02x ",vals[i]);
         }
-        pr.printf("\n");
+        pr->printf("\n");
     }
     for(uint8_t add=0x0C;add<=0x17;add++)
     {
         uint8_t val = readRegister(add);
-        pr.printf("0x%02x : 0x%02x\n",add,val);
+        pr->printf("0x%02x : 0x%02x\n",add,val);
     }
     uint8_t add = 0x1C;
     uint8_t val = readRegister(add);
-    pr.printf("0x%02x : 0x%02x\n",add,val);
+    pr->printf("0x%02x : 0x%02x\n",add,val);
 }

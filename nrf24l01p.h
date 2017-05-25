@@ -143,13 +143,6 @@ namespace nrf
         TwoBytes
     };
 
-    uint8_t const mode_uninitialised = 0;
-    uint8_t const mode_power_down    = 1;
-    uint8_t const mode_standby       = 2;
-    uint8_t const mode_tx            = 3;
-    uint8_t const mode_rx            = 4;
-
-
 }
 
 
@@ -158,7 +151,7 @@ class Nrf24l01p
 public:
     //nRF24L01+ pins:
     //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq 
-    Nrf24l01p(PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso);
+    Nrf24l01p(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso);
 
     //--------------------- Level 3 - Info ----------------------------
     void print_info();
@@ -173,10 +166,10 @@ public:
     void setMode(nrf::Mode m);
     //--------------------- Level 2 - Config ----------------------------
     void setDataRate(nrf::datarate dr);
-    void selectChannel(uint8_t chan);
-    uint8_t getChannel();
-    void setTxAddress();
-    void setRxAddress();
+    void selectChannel(uint8_t chan);   //TODO
+    uint8_t getChannel();               //TODO
+    void setTxAddress();                //TODO
+    void setRxAddress();                //TODO
     void setCrcConfig(nrf::crc c);
     void disableAutoAcknowledge();
     void enableAutoAcknowledge(uint8_t bits);
@@ -188,11 +181,12 @@ public:
     //--------------------- Level 1 ----------------------------
     uint8_t writeRegister(uint8_t reg,uint8_t val);
     uint8_t readRegister(uint8_t reg);
-    uint8_t readStatus();
+    uint8_t readStatus();//faster than readRegister(status);
 
-    void setbit(uint8_t reg, uint8_t bit);
-    void clearbit(uint8_t reg, uint8_t bit);
+    void setbit(uint8_t reg, uint8_t bit);  //keep other bits unchanged
+    void clearbit(uint8_t reg, uint8_t bit);//keep other bits unchanged
 
+    //read and write multiple bytes from the same address
     void writeBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
     void readBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
 
@@ -210,9 +204,13 @@ public:
     SPI         spi;
     DigitalOut  csn_pin;
     DigitalOut  ce_pin;
-
+    Serial      *pr;
+    void print();
+    //Callback<void(const char *format,...)> print;
+    //mode as variable is subject to inconsistency used minimally
     nrf::Mode     mode;
 };
 
 
 #endif /* __NRF24L01P__ */
+
