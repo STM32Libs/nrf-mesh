@@ -23,10 +23,10 @@ void nrf_irq()
         {
             uint8_t data[32];
             #ifdef NRF_DYNAMIC_PAYLOAD
-            uint8_t size = readRegister(nrf::cmd::R_RX_PL_WID);
+            uint8_t size = getRxPayloadWidth();
             if(size > 32)
             {
-                handler->nrf.writeRegister(nrf::cmd::FLUSH_RX);
+                handler->nrf.flushRX();
             }
             #else
             uint8_t size = 32;

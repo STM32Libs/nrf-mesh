@@ -146,7 +146,7 @@ void Nrf24l01p::readBuffer(uint8_t add,uint8_t *buf,uint8_t size)
 
 }
 
-//--------------------- Level 2 - Modes ----------------------------
+//--------------------- Level 3 - Modes ----------------------------
 void Nrf24l01p::setMode(nrf::Mode m)
 {
     switch(m)
@@ -296,6 +296,72 @@ void Nrf24l01p::setPipeWidth(uint8_t pipe, uint8_t width)
     //here a mask on width does not make sense but a test yes as 32 is valid but 33 not
     writeRegister(nrf::reg::RX_PW_P0 + pipe, width);
 }
+//--------------------- Level 2 - Status ----------------------------
+uint8_t Nrf24l01p::getRxPayloadWidth()
+{
+    return readRegister(nrf::cmd::R_RX_PL_WID);
+}
+//--------------------- Level 2 - Actions ----------------------------
+void Nrf24l01p::flushRX()
+{
+    command(nrf::cmd::FLUSH_RX);
+}
+
+//--------------------- Level 3 - Communication ----------------------------
+void Nrf24l01p::receive(uint8_t *payload, uint8_t size)
+{
+
+}
+
+void Nrf24l01p::wait_transmit()
+{
+	uint8_t status;
+    int cycles = 0;
+	do
+	{
+		status = readStatus();
+		cycles++;
+        wait_us(nrf::delay::Poll_Tx_10_us);
+	}while(     ((status & nrf::bit::status::TX_DS) == 0)
+                &
+                (cycles<255)
+            );
+}
+
+void Nrf24l01p::start_transmission(uint8_t *payload, uint8_t size)
+{
+    //Assert Data Sent before new transmission to poll TX status
+    //no need to use setbit with status, as two read, and others act on write one only
+    writeRegister(nrf::reg::STATUS,nrf::bit::status::TX_DS);
+
+    if(mode != nrf::Mode::Tx)
+    {
+        setMode(nrf::Mode::Tx);
+    }
+
+    //Fill the payload
+    writeBuffer(nrf::cmd::W_TX_PLOAD,payload,size);
+
+    ce_pin_highEnable();
+    wait_us(nrf::delay::Tx_Pulse_10_us);
+    ce_pin_lowDisable();
+}
+
+void Nrf24l01p::transmit_Down(uint8_t *payload, uint8_t size)
+{
+    start_transmission(payload,size);
+    wait_transmit();
+    setMode(nrf::Mode::PowerDown);
+}
+
+void Nrf24l01p::transmit_Rx(uint8_t *payload, uint8_t size)
+{
+    start_transmission(payload,size);
+    wait_transmit();
+    setMode(nrf::Mode::Rx);
+}
+
+
 //--------------------- Level 3 - Info ----------------------------
 void Nrf24l01p::print_info()
 {

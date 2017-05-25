@@ -122,9 +122,10 @@ namespace nrf
 
     namespace delay
     {
+        int const Tx_Pulse_10_us      =      10 ;  //  10uS
+        int const Poll_Tx_10_us       =      10 ;  //  10uS
         int const Tundef2pd_us =  100000 ;  // 100mS
         int const Tstby2a_us   =     130 ;  // 130uS
-        int const Thce_us      =      10 ;  //  10uS
         int const Tpd2stby_us  =    4500 ;  // 4.5mS worst case
         int const Tpece2csn_us =       4 ;  //   4uS
     }
@@ -162,7 +163,13 @@ public:
 
     void dump_regs();
     
-    //--------------------- Level 2 - Modes ----------------------------
+    //--------------------- Level 3 - Communication ---------------------
+    void receive(uint8_t *payload, uint8_t size);   //TODO
+    void start_transmission(uint8_t *payload, uint8_t size);
+    void transmit_Down(uint8_t *payload, uint8_t size);
+    void transmit_Rx(uint8_t *payload, uint8_t size);
+    void wait_transmit();
+    //--------------------- Level 3 - Modes ----------------------------
     void setMode(nrf::Mode m);
     //--------------------- Level 2 - Config ----------------------------
     void setDataRate(nrf::datarate dr);
@@ -177,6 +184,10 @@ public:
     void disableRxPipes();
     void disableRetransmission();
     void setPipeWidth(uint8_t pipe, uint8_t width);
+    //--------------------- Level 2 - Status ----------------------------
+    uint8_t getRxPayloadWidth();
+    //--------------------- Level 2 - Actions ----------------------------
+    void flushRX();
     
     //--------------------- Level 1 ----------------------------
     uint8_t writeRegister(uint8_t reg,uint8_t val);
@@ -187,11 +198,11 @@ public:
     void clearbit(uint8_t reg, uint8_t bit);//keep other bits unchanged
 
     //read and write multiple bytes from the same address
-    void writeBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
+    void writeBuffer(uint8_t add,uint8_t *buf,uint8_t size);
     void readBuffer(uint8_t reg,uint8_t *buf,uint8_t size);
 
     //used for commands without values, otherwise writeRegister is used
-    void command(uint8_t reg);
+    void command(uint8_t v_cmd);
 
     //--------------------- Level 0 ----------------------------
     void ce_pin_highEnable();
