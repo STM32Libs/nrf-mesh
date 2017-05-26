@@ -216,8 +216,6 @@ public:
     DigitalOut  csn_pin;
     DigitalOut  ce_pin;
     Serial      *pr;
-    void print();
-    //Callback<void(const char *format,...)> print;
     //mode as variable is subject to inconsistency used minimally
     nrf::Mode     mode;
 };
