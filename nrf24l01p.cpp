@@ -225,12 +225,12 @@ void Nrf24l01p::setDataRate(nrf::datarate dr)
 
 void Nrf24l01p::selectChannel(uint8_t chan)
 {
-
+    writeRegister(nrf::reg::RF_CH,chan);
 }
 
 uint8_t Nrf24l01p::getChannel()
 {
-
+    return readRegister(nrf::reg::RF_CH);
 }
 
 void Nrf24l01p::setTxAddress()
@@ -368,6 +368,7 @@ void Nrf24l01p::print_info()
     print_status();
     print_config();
     print_rf_setup();
+    print_rf_freq();
     print_fifo_status();
 }
 
@@ -524,6 +525,13 @@ void Nrf24l01p::print_rf_setup()
         pr->printf("Continuous Carrier");
     }
     pr->printf("\n");
+}
+
+void Nrf24l01p::print_rf_freq()
+{
+    uint8_t channel = getChannel();
+    int frequency = 2400 + channel;
+    pr->printf("Frequency : %d MHz\n",frequency);
 }
 
 void Nrf24l01p::print_fifo_status()

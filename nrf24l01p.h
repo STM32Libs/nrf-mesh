@@ -159,6 +159,7 @@ public:
     void print_status();
     void print_config();
     void print_rf_setup();
+    void print_rf_freq();
     void print_fifo_status();
 
     void dump_regs();
@@ -173,8 +174,8 @@ public:
     void setMode(nrf::Mode m);
     //--------------------- Level 2 - Config ----------------------------
     void setDataRate(nrf::datarate dr);
-    void selectChannel(uint8_t chan);   //TODO
-    uint8_t getChannel();               //TODO
+    void selectChannel(uint8_t chan);
+    uint8_t getChannel();            
     void setTxAddress();                //TODO
     void setRxAddress();                //TODO
     void setCrcConfig(nrf::crc c);

@@ -94,10 +94,13 @@ void RfMesh::init()
     nrf.setMode(nrf::Mode::Standby);//PowerUp
 
 
-    pser->printf("set_DataRate()\r\n");
+    pser->printf("set_DataRate(2Mbps)\r\n");
     nrf.setDataRate(nrf::datarate::d_2Mbps);
-    pser->printf("set_CrcConfig()\r\n");
+    pser->printf("set_CrcConfig(NoCrc)\r\n");
     nrf.setCrcConfig(nrf::crc::NoCrc);
+    pser->printf("set_RF_Channel(2) 2402 MHz\r\n");
+    nrf.selectChannel(2);
+
     /*pser->printf("setTxAddress()\r\n");
     nrf.setTxAddress(DEFAULT_NRF24L01P_ADDRESS,5);
     pser->printf("setRxAddress()\r\n");
