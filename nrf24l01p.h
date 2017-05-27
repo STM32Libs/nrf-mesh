@@ -59,9 +59,6 @@ namespace nrf
             uint8_t const MASK_TX_DS	=   (1<<5);
             uint8_t const MASK_RX_DR	=	(1<<6);
 
-            uint8_t const neg_EN_CRC	=   (~0x08);
-            uint8_t const neg_PWR_UP	=   (~0x02);
-            uint8_t const neg_PRIM_RX	=   (~0x01);
         }
         namespace status
         {

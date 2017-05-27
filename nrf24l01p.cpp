@@ -154,6 +154,7 @@ void Nrf24l01p::setMode(nrf::Mode m)
         case nrf::Mode::Standby :
         {
             setbit(nrf::reg::CONFIG,nrf::bit::config::PWR_UP);
+            //pr->printf("SetMode : Standby\n");
             wait_us(nrf::delay::Tpd2stby_us);
             mode = nrf::Mode::Standby;
         }
@@ -161,6 +162,7 @@ void Nrf24l01p::setMode(nrf::Mode m)
         case nrf::Mode::PowerDown :
         {
             clearbit(nrf::reg::CONFIG,nrf::bit::config::PWR_UP);
+            //pr->printf("SetMode : PowerDown\n");
             mode = nrf::Mode::PowerDown;
         }
         break;
@@ -171,6 +173,7 @@ void Nrf24l01p::setMode(nrf::Mode m)
                 setMode(nrf::Mode::Standby);
             }
             setbit(nrf::reg::CONFIG,nrf::bit::config::PRIM_RX);
+            //pr->printf("SetMode : Rx\n");
             mode = nrf::Mode::Rx;
         }
         break;
@@ -180,13 +183,14 @@ void Nrf24l01p::setMode(nrf::Mode m)
             {
                 setMode(nrf::Mode::Standby);
             }
-            clearbit(nrf::reg::CONFIG,nrf::bit::config::neg_PRIM_RX);//Rx cleared => Tx mode
+            clearbit(nrf::reg::CONFIG,nrf::bit::config::PRIM_RX);//Rx cleared => Tx mode
+            //pr->printf("SetMode : Tx\n");
             mode = nrf::Mode::Tx;
         }
         break;
         default:
         {
-            //? What to do ?
+            pr->printf("nrf Error> SetMode : Unknown\n");
         }
         break;
         
