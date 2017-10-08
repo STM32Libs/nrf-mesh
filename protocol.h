@@ -105,10 +105,12 @@ class Proto
         void rx_reset(uint8_t src_NodeId);
 
         //should move to max44009 lib
-        void rx_light(uint8_t src_NodeId,uint8_t *rxPayload,uint8_t rx_PayloadSize);
+        void rx_light(uint8_t src_NodeId,uint8_t *rxPayload);
 
         //should move to magnet lib
-        void rx_magnet(uint8_t src_NodeId,uint8_t *rxPayload,uint8_t rx_PayloadSize);
+        void rx_magnet(uint8_t src_NodeId,uint8_t *rxPayload);
+
+        void bme280_rx_measures(uint8_t src_NodeId,uint8_t *rxPayload);
     public:
         Serial      *pser;
 };
