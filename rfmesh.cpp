@@ -8,6 +8,45 @@ static uint32_t nrf_handlers[NRF_NUM] = {0};
 
 static void nrf_donothing(uint8_t *data,uint8_t size) {};
 
+uint16_t crc_Fletcher16( uint8_t const *data, uint8_t count )
+{
+	uint16_t sum1 = 0;
+	uint16_t sum2 = 0;
+	int index;
+
+	for( index = 0; index < count; ++index )
+	{
+		sum1 = (sum1 + data[index]) % 255;
+		sum2 = (sum2 + sum1) % 255;
+	}
+
+	return (sum2 << 8) | sum1;
+}
+
+// size(size+data) : data : crc
+void crc_set(uint8_t *data)
+{
+	uint8_t size = data[0];
+	uint16_t crc = crc_Fletcher16(data,size);//check the data without excluding the crc
+	data[size]   = (crc >> 8);
+	data[size+1] = (crc & 0xFF);
+}
+
+// size(size+data) : data : crc
+uint8_t crc_check(uint8_t const *data)
+{
+	uint8_t result = 1;
+	uint8_t size = data[0];
+	uint16_t crc = crc_Fletcher16(data,size);//check the data without excluding the crc
+	if( (data[size] != (crc >> 8) ) || (data[size+1] != (crc & 0xFF) ) )
+	{
+		result = 0;
+	}
+	return result;
+}
+
+#define NO_DEBUG_CHECK_ALL
+
 void nrf_irq()
 {
     //on multi instance should derive the id from the irq
@@ -23,16 +62,32 @@ void nrf_irq()
         {
             uint8_t data[32];
             #ifdef NRF_DYNAMIC_PAYLOAD
-            uint8_t size = getRxPayloadWidth();
-            if(size > 32)
+            uint8_t rf_size = getRxPayloadWidth();
+            if(rf_size > 32)
             {
                 handler->nrf.flushRX();
             }
             #else
-            uint8_t size = 32;
+            uint8_t rf_size = 32;
             #endif
-            handler->nrf.readBuffer(nrf::cmd::R_RX_PLOAD,data,size);
-            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,size);
+            handler->nrf.readBuffer(nrf::cmd::R_RX_PLOAD,data,rf_size);
+            uint8_t user_size = 30;
+            bool is_provided = false;
+            if(data[0]<=30)//30 + 2xBytes for CRC
+            {
+                user_size = data[0];
+                if(crc_check(data))//crc error ignored
+                {
+                    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,user_size);
+                    is_provided = true;
+                }
+            }
+            #ifndef NO_DEBUG_CHECK_ALL
+            if(!is_provided)
+            {
+                handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,user_size);
+            }
+            #endif
             //reread the status to check if you need to get another buffer
             status = handler->nrf.readStatus();
             rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;
