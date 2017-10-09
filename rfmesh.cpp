@@ -1,6 +1,7 @@
 
 
 #include "rfmesh.h"
+#include "crc.h"
 
 #define NRF_NUM (1)
 
@@ -8,44 +9,8 @@ static uint32_t nrf_handlers[NRF_NUM] = {0};
 
 static void nrf_donothing(uint8_t *data,uint8_t size) {};
 
-uint16_t crc_Fletcher16( uint8_t const *data, uint8_t count )
-{
-	uint16_t sum1 = 0;
-	uint16_t sum2 = 0;
-	int index;
-
-	for( index = 0; index < count; ++index )
-	{
-		sum1 = (sum1 + data[index]) % 255;
-		sum2 = (sum2 + sum1) % 255;
-	}
-
-	return (sum2 << 8) | sum1;
-}
-
-// size(size+data) : data : crc
-void crc_set(uint8_t *data)
-{
-	uint8_t size = data[0];
-	uint16_t crc = crc_Fletcher16(data,size);//check the data without excluding the crc
-	data[size]   = (crc >> 8);
-	data[size+1] = (crc & 0xFF);
-}
-
-// size(size+data) : data : crc
-uint8_t crc_check(uint8_t const *data)
-{
-	uint8_t result = 1;
-	uint8_t size = data[0];
-	uint16_t crc = crc_Fletcher16(data,size);//check the data without excluding the crc
-	if( (data[size] != (crc >> 8) ) || (data[size+1] != (crc & 0xFF) ) )
-	{
-		result = 0;
-	}
-	return result;
-}
-
-#define NO_DEBUG_CHECK_ALL
+//forward declaration
+void rf_message_handler(uint8_t *data);
 
 void nrf_irq()
 {
@@ -53,7 +18,6 @@ void nrf_irq()
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     //decide here which irq to call
     uint8_t status = handler->nrf.readStatus();
-
     if(status & nrf::bit::status::RX_DR)
     {
         uint8_t rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;
@@ -71,23 +35,7 @@ void nrf_irq()
             uint8_t rf_size = 32;
             #endif
             handler->nrf.readBuffer(nrf::cmd::R_RX_PLOAD,data,rf_size);
-            uint8_t user_size = 30;
-            bool is_provided = false;
-            if(data[0]<=30)//30 + 2xBytes for CRC
-            {
-                user_size = data[0];
-                if(crc_check(data))//crc error ignored
-                {
-                    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,user_size);
-                    is_provided = true;
-                }
-            }
-            #ifndef NO_DEBUG_CHECK_ALL
-            if(!is_provided)
-            {
-                handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,user_size);
-            }
-            #endif
+            rf_message_handler(data);
             //reread the status to check if you need to get another buffer
             status = handler->nrf.readStatus();
             rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;
@@ -97,10 +45,42 @@ void nrf_irq()
             //do something as we might have been stuck or Under DoS Attack
         }
     }
-
     // Clear any pending interrupts
     handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::status::MAX_RT | nrf::bit::status::TX_DS | nrf::bit::status::RX_DR );
 
+}
+
+void rf_message_handler(uint8_t *data)
+{
+    RfMesh *handler = (RfMesh*)nrf_handlers[0];
+    #if P2P_BRIDGE_RETRANSMISSION == 1
+        if(check_bridge_retransmissions(data))
+        {
+            return;//it is not directed to this node and just retransmitted
+        }
+    #endif
+    //--------------- retransmission check -------------------
+    if((data[0] & 0xF0) == 0xD0)
+    {
+        uint8_t ttl = data[1] & 0x0F;
+        handler->pser->printf("RTX:%d;",ttl);
+        data+=2;//retransmission header is removed, data[0] now have the beginning of the retransmission payload
+    }
+    //--------------- size check -------------------
+    if(data[0] > 30)//failure, crc should not be checked is unsafe
+    {
+        handler->pser->printf("rx size Fail:%d\r",data[0]);
+        return;
+    }
+    //--------------- crc check -------------------
+    if(!crc::check(data))
+    {
+        handler->pser->printf("rx crc Fail\r");//TODO print tab in util
+        return;
+    }
+    uint8_t user_size = data[0];
+    //TODO, check different protocols, broadcast, Point 2 Point, Request, Response,...
+    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,user_size);
 }
 
 RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):

@@ -70,10 +70,10 @@ void Proto::rx_magnet(uint8_t src_NodeId,uint8_t *rxPayload)
 
 void Proto::bme280_rx_measures(uint8_t src_NodeId,uint8_t *rxPayload)
 {
-	pser->printf("NodeId:%d;BME280: ",src_NodeId);
+	pser->printf("NodeId:%d;BME280: 0x",src_NodeId);
 	for(int i=0;i<8;i++)
 	{
-		pser->printf("0x%0x ",rxPayload[i]);
+		pser->printf("%02x ",rxPayload[i]);
 	}
     pser->printf("\r");
 }
