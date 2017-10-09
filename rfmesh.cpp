@@ -2,6 +2,7 @@
 
 #include "rfmesh.h"
 #include "crc.h"
+#include "protocol.h"
 
 #define NRF_NUM (1)
 
@@ -11,6 +12,12 @@ static void nrf_donothing(uint8_t *data,uint8_t size) {};
 
 //forward declaration
 void rf_message_handler(uint8_t *data);
+void rf_peer2peer_handler(uint8_t *data);
+
+uint8_t isReturned;//to check if a ack is returned
+uint8_t p2p_ack;
+uint8_t p2p_expected_Pid;
+uint8_t nodeId;
 
 void nrf_irq()
 {
@@ -79,9 +86,60 @@ void rf_message_handler(uint8_t *data)
         return;
     }
     uint8_t user_size = data[0];
-    //TODO, check different protocols, broadcast, Point 2 Point, Request, Response,...
-    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,user_size);
+    if((data[rfi_pid] & mesh::p2p::BROADCAST_MASK) == mesh::p2p::BROADCAST_MASK)
+    {
+        //we catched a broadcast, forward it to the user as such
+        handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Broadcast)](data,user_size);
+    }
+    else
+    {
+        rf_peer2peer_handler(data);
+    }
 }
+
+void rf_peer2peer_handler(uint8_t *data)
+{
+    RfMesh *handler = (RfMesh*)nrf_handlers[0];
+
+    if(data[rfi_dst] != nodeId)
+    {
+        return;//as this packet is not directed to us
+    }
+    if((data[rfi_pid] & mesh::p2p::TYPE_MASK) == mesh::p2p::TYPE_MSQ_ACK)
+    {
+        if((data[rfi_pid] & mesh::p2p::MESSAGE_MASK) == mesh::p2p::MESSAGE_MASK)
+        {
+            //send_ack(data);
+            //TODO send the acknowledge
+            data[rfi_pid]&= 0x01F;// clear bit7, bit6, bit5 and keep id
+            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[0]);
+        }
+        else//it's an acknowledge
+        {
+            isReturned = 1;
+        }
+    }
+    else//it's Request / Response
+    {
+        if((data[rfi_pid] & mesh::p2p::REQUEST_MASK) == mesh::p2p::REQUEST_MASK)
+        {
+            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[0]);
+        }
+        else
+        {
+            isReturned = 1;
+            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Response)](data,data[0]);
+        }
+    }
+    if(isReturned)
+    {
+        if((p2p_expected_Pid & 0x1F) == (data[rfi_pid] & 0x1F) && (data[rfi_dst] == nodeId)  )
+        {
+            p2p_ack = 1;//notify the re-transmitter
+        }
+    }
+}
+
 
 RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):
                             //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq
@@ -163,3 +221,7 @@ void RfMesh::print_nrf()
     pser->printf("irq pin %d\n",irq_status);
 }
 
+void RfMesh::setNodeId(uint8_t nid)
+{
+    nodeId = nid;
+}

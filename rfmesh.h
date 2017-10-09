@@ -5,14 +5,29 @@
 #include "mbed.h"
 #include "nrf24l01p.h"
 
+namespace mesh
+{
+    namespace p2p
+    {
+        uint8_t const BROADCAST_MASK    =   0x80;
+        uint8_t const TYPE_MASK         =   0x40;
+        uint8_t const TYPE_MSQ_ACK      =   0x40;
+        uint8_t const MESSAGE_MASK      =   0x20;
+        uint8_t const REQUEST_MASK      =   0x20;
+        
+    }
+}
+
 class RfMesh
 {
     public:
     enum class CallbackType {
         Message = 0,
-        Request = 1,
-        TxComplete = 2,
-        CallbackCnt = 3
+        Broadcast = 1,
+        Request = 2,
+        Response = 3,
+        TxComplete = 4,
+        CallbackCnt = 5
     };
 
     public:
@@ -20,6 +35,7 @@ class RfMesh
         void init();
         void print_nrf();
         void attach(Callback<void(uint8_t *data,uint8_t size)> func,CallbackType type);
+        void setNodeId(uint8_t nid);
     public:
         Nrf24l01p   nrf;
         Serial      *pser;
