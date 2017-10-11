@@ -34,7 +34,7 @@ class RfMesh
         Response = 3,
         TxComplete = 4,
         Sniff = 5,
-        CallbackCnt = 5
+        CallbackCnt = 6
     };
 
     public:
@@ -48,7 +48,8 @@ class RfMesh
         //---------------------------- Communication ------------------------
     public:
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b);
-    private:
+        void broadcast_reset();
+        private:
         bool send_check_ack();
         uint8_t send_retries();
         //-------------------------------------------------------------------

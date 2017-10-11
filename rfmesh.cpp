@@ -16,6 +16,7 @@ void rf_message_handler(uint8_t *data);
 void rf_peer2peer_handler(uint8_t *data);
 
 uint8_t p2p_message[32];//size included
+uint8_t brc_message[32];//size included
 
 uint8_t isReturned;//to check if a ack is returned
 bool p2p_ack = false;
@@ -28,6 +29,7 @@ void nrf_irq()
 {
     //on multi instance should derive the id from the irq
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
+    handler->pser->printf("irq\r");
     //decide here which irq to call
     uint8_t status = handler->nrf.readStatus();
     if(status & nrf::bit::status::RX_DR)
@@ -54,19 +56,22 @@ void nrf_irq()
         }
         if(max_reread == 0)
         {
+            handler->pser->printf("max_reread\r");
             //do something as we might have been stuck or Under DoS Attack
         }
     }
     // Clear any pending interrupts
     handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::status::MAX_RT | nrf::bit::status::TX_DS | nrf::bit::status::RX_DR );
 
+    handler->pser->printf("out of irq\r");
 }
 
 void rf_message_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
+    handler->pser->printf("rf_message_handler\r");
     //----------------------- sniffing -----------------------------
-    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
+    //handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
     //--------------------------------------------------------------
     #if P2P_BRIDGE_RETRANSMISSION == 1
         if(check_bridge_retransmissions(data))
@@ -186,6 +191,7 @@ void RfMesh::init()
     wait_ms(100);//Let the Power get stable
 
     pser->printf("Hello Mesh .... nRF24L01+ Dump :\r\n");
+    print_nrf();
 
     pser->printf("Configuration\r\n");
     nrf.setMode(nrf::Mode::PowerDown);//Power Down
@@ -208,8 +214,11 @@ void RfMesh::init()
     nrf.setMode(nrf::Mode::Standby);//PowerUp
 
 
+    pser->printf("set_DataRate(2Mbps)\r\n");
     nrf.setDataRate(nrf::datarate::d_2Mbps);
+    pser->printf("set_CrcConfig(NoCrc)\r\n");
     nrf.setCrcConfig(nrf::crc::NoCrc);
+    pser->printf("set_RF_Channel(2) 2402 MHz\r\n");
     nrf.selectChannel(2);
 
     /*pser->printf("setTxAddress()\r\n");
@@ -224,6 +233,7 @@ void RfMesh::init()
     nrf.ce_pin_highEnable();
     
 }
+
 
 void RfMesh::attach(Callback<void(uint8_t *data,uint8_t size)> func,RfMesh::CallbackType type)
 {
@@ -294,3 +304,11 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
     return send_retries();
 }
 
+void RfMesh::broadcast_reset()
+{
+    brc_message[rfi_size] = 3;
+    brc_message[rfi_pid] =  mesh::p2p::BIT7_BROADCAST | rf_pid_0xC9_reset;
+    brc_message[rfi_src] = g_nodeId;
+    crc::set(brc_message);
+    nrf.transmit_Rx(brc_message,brc_message[rfi_size]+2);
+}
