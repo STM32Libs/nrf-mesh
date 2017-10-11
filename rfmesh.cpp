@@ -3,6 +3,7 @@
 #include "rfmesh.h"
 #include "crc.h"
 #include "protocol.h"
+#include "utils.h"
 
 #define NRF_NUM (1)
 
@@ -14,10 +15,14 @@ static void nrf_donothing(uint8_t *data,uint8_t size) {};
 void rf_message_handler(uint8_t *data);
 void rf_peer2peer_handler(uint8_t *data);
 
+uint8_t p2p_message[32];//size included
+
 uint8_t isReturned;//to check if a ack is returned
-uint8_t p2p_ack;
-uint8_t p2p_expected_Pid;
-uint8_t nodeId;
+bool p2p_ack = false;
+uint8_t p2p_expected_Pid = 0;
+uint8_t g_nodeId;
+uint8_t p2p_nb_retries = 3;
+uint16_t p2p_ack_delay = 290;
 
 void nrf_irq()
 {
@@ -60,6 +65,9 @@ void nrf_irq()
 void rf_message_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
+    //----------------------- sniffing -----------------------------
+    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
+    //--------------------------------------------------------------
     #if P2P_BRIDGE_RETRANSMISSION == 1
         if(check_bridge_retransmissions(data))
         {
@@ -83,16 +91,24 @@ void rf_message_handler(uint8_t *data)
     if(!crc::check(data))
     {
         handler->pser->printf("rx crc Fail\r");//TODO print tab in util
+        uint8_t print_size = data[0];
+        if(print_size>30)
+        {
+            print_size = 30;
+        }
+        print_tab(handler->pser,data,print_size);
         return;
     }
     uint8_t user_size = data[0];
     if((data[rfi_pid] & mesh::p2p::BROADCAST_MASK) == mesh::p2p::BROADCAST_MASK)
     {
         //we catched a broadcast, forward it to the user as such
+        handler->pser->printf("call broadcast\r");
         handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Broadcast)](data,user_size);
     }
     else
     {
+        handler->pser->printf("call peer2peer\r");
         rf_peer2peer_handler(data);
     }
 }
@@ -101,8 +117,9 @@ void rf_peer2peer_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
 
-    if(data[rfi_dst] != nodeId)
+    if(data[rfi_dst] != g_nodeId)
     {
+        handler->pser->printf("not this node id\r");
         return;//as this packet is not directed to us
     }
     if((data[rfi_pid] & mesh::p2p::TYPE_MASK) == mesh::p2p::TYPE_MSQ_ACK)
@@ -112,10 +129,12 @@ void rf_peer2peer_handler(uint8_t *data)
             //send_ack(data);
             //TODO send the acknowledge
             data[rfi_pid]&= 0x01F;// clear bit7, bit6, bit5 and keep id
+            handler->pser->printf("call Message\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[0]);
         }
         else//it's an acknowledge
         {
+            handler->pser->printf("is returned\r");
             isReturned = 1;
         }
     }
@@ -123,19 +142,22 @@ void rf_peer2peer_handler(uint8_t *data)
     {
         if((data[rfi_pid] & mesh::p2p::REQUEST_MASK) == mesh::p2p::REQUEST_MASK)
         {
+            handler->pser->printf("call request\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[0]);
         }
         else
         {
+            handler->pser->printf("call response\r");
             isReturned = 1;
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Response)](data,data[0]);
         }
     }
     if(isReturned)
     {
-        if((p2p_expected_Pid & 0x1F) == (data[rfi_pid] & 0x1F) && (data[rfi_dst] == nodeId)  )
+        if((p2p_expected_Pid & 0x1F) == (data[rfi_pid] & 0x1F) && (data[rfi_dst] == g_nodeId)  )
         {
-            p2p_ack = 1;//notify the re-transmitter
+            handler->pser->printf("ack ok\r");
+            p2p_ack = true;//notify the re-transmitter
         }
     }
 }
@@ -164,7 +186,6 @@ void RfMesh::init()
     wait_ms(100);//Let the Power get stable
 
     pser->printf("Hello Mesh .... nRF24L01+ Dump :\r\n");
-    print_nrf();
 
     pser->printf("Configuration\r\n");
     nrf.setMode(nrf::Mode::PowerDown);//Power Down
@@ -187,11 +208,8 @@ void RfMesh::init()
     nrf.setMode(nrf::Mode::Standby);//PowerUp
 
 
-    pser->printf("set_DataRate(2Mbps)\r\n");
     nrf.setDataRate(nrf::datarate::d_2Mbps);
-    pser->printf("set_CrcConfig(NoCrc)\r\n");
     nrf.setCrcConfig(nrf::crc::NoCrc);
-    pser->printf("set_RF_Channel(2) 2402 MHz\r\n");
     nrf.selectChannel(2);
 
     /*pser->printf("setTxAddress()\r\n");
@@ -206,7 +224,6 @@ void RfMesh::init()
     nrf.ce_pin_highEnable();
     
 }
-
 
 void RfMesh::attach(Callback<void(uint8_t *data,uint8_t size)> func,RfMesh::CallbackType type)
 {
@@ -223,5 +240,57 @@ void RfMesh::print_nrf()
 
 void RfMesh::setNodeId(uint8_t nid)
 {
-    nodeId = nid;
+    g_nodeId = nid;
 }
+
+void RfMesh::setRetries(uint8_t nb_retries)
+{
+    p2p_nb_retries = nb_retries;
+}
+
+void RfMesh::setAckDelay(uint16_t delay)
+{
+    p2p_ack_delay = delay;
+}
+
+
+bool RfMesh::send_check_ack()
+{
+    p2p_ack = false;
+    p2p_expected_Pid = p2p_message[rfi_pid];//Pid
+	nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
+	wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
+    return p2p_ack;
+}
+
+uint8_t RfMesh::send_retries()
+{
+	bool success = false;
+	uint8_t retries = 0;
+	do
+	{
+		success = send_check_ack();//1 on success, 0 on fail
+		retries++;
+	}while((retries<p2p_nb_retries) && (!success) );
+    if(!success)
+    {
+        retries = 0;
+    }
+	return retries;//nb_retries in case of success otherwise 0
+}
+
+uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
+{
+    p2p_message[rfi_size] = 7;
+    p2p_message[rfi_pid] =  mesh::p2p::BIT7_DIRECTED    | mesh::p2p::BIT6_MSGACK | 
+                            mesh::p2p::BIT5_MESSAGE     | rf_pid_rgb;
+    p2p_message[rfi_src] = g_nodeId;
+    p2p_message[rfi_dst] = dest;
+    p2p_message[4] = r;
+    p2p_message[5] = g;
+    p2p_message[6] = b;
+    crc::set(p2p_message);
+    print_tab(pser,p2p_message,9);
+    return send_retries();
+}
+
