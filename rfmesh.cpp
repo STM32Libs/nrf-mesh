@@ -21,7 +21,7 @@ uint8_t brc_message[32];//size included
 uint8_t isReturned;//to check if a ack is returned
 bool p2p_ack = false;
 uint8_t p2p_expected_Pid = 0;
-uint8_t g_nodeId;
+uint8_t g_nodeId = 0;
 uint8_t p2p_nb_retries = 3;
 uint16_t p2p_ack_delay = 290;
 
@@ -29,7 +29,6 @@ void nrf_irq()
 {
     //on multi instance should derive the id from the irq
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
-    handler->pser->printf("irq\r");
     //decide here which irq to call
     uint8_t status = handler->nrf.readStatus();
     if(status & nrf::bit::status::RX_DR)
@@ -63,13 +62,11 @@ void nrf_irq()
     // Clear any pending interrupts
     handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::status::MAX_RT | nrf::bit::status::TX_DS | nrf::bit::status::RX_DR );
 
-    handler->pser->printf("out of irq\r");
 }
 
 void rf_message_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
-    handler->pser->printf("rf_message_handler\r");
     //----------------------- sniffing -----------------------------
     //handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
     //--------------------------------------------------------------
@@ -179,29 +176,31 @@ RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, Pi
         _callbacks[i] = nrf_donothing;
     }
     
-    nRFIrq.fall(&nrf_irq);//can set : callback(this, &Counter::increment)
-    nRFIrq.mode(PullNone);
-    nRFIrq.enable_irq();
-    //current implementation with a single instance
     nrf_handlers[0] = (uint32_t)this;
+
+    //current implementation with a single instance
 }
 
 void RfMesh::init()
 {
     wait_ms(100);//Let the Power get stable
 
-    pser->printf("Hello Mesh .... nRF24L01+ Dump :\r\n");
-    print_nrf();
+    //pser->printf("Hello Mesh .... nRF24L01+ Dump :\r\n");
+    //print_nrf();
 
-    pser->printf("Configuration\r\n");
+    //pser->printf("Configuration\r\n");
+    
+    //disable all interrupts
+    nrf.writeRegister(nrf::reg::CONFIG,0);//All interrupts disabled - no CRC
+    
     nrf.setMode(nrf::Mode::PowerDown);//Power Down
 
     //Flush any previously used RX and TX FIFOs
-    pser->printf("Flushing Buffers\r\n");
+    //pser->printf("Flushing Buffers\r\n");
     nrf.command(nrf::cmd::FLUSH_TX);
     nrf.command(nrf::cmd::FLUSH_RX);
-    nrf.setbit(nrf::reg::STATUS,nrf::bit::status::RX_DR);//write one to clear status bit
-    nrf.clearbit(nrf::reg::CONFIG,nrf::bit::config::MASK_RX_DR);//enable Rx DR interrupt
+    //clear all pending interrupts
+    nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::status::MAX_RT | nrf::bit::status::TX_DS | nrf::bit::status::RX_DR );
 
     nrf.disableAutoAcknowledge();
     nrf.disableRetransmission();
@@ -210,27 +209,27 @@ void RfMesh::init()
     nrf.setPipeWidth(0,32);
 
 
-    pser->printf("Power Up\r\n");
+    //pser->printf("Power Up\r\n");
     nrf.setMode(nrf::Mode::Standby);//PowerUp
 
 
-    pser->printf("set_DataRate(2Mbps)\r\n");
+    //pser->printf("set_DataRate(2Mbps)\r\n");
     nrf.setDataRate(nrf::datarate::d_2Mbps);
-    pser->printf("set_CrcConfig(NoCrc)\r\n");
+    //pser->printf("set_CrcConfig(NoCrc)\r\n");
     nrf.setCrcConfig(nrf::crc::NoCrc);
-    pser->printf("set_RF_Channel(2) 2402 MHz\r\n");
+    //pser->printf("set_RF_Channel(2) 2402 MHz\r\n");
     nrf.selectChannel(2);
 
-    /*pser->printf("setTxAddress()\r\n");
-    nrf.setTxAddress(DEFAULT_NRF24L01P_ADDRESS,5);
-    pser->printf("setRxAddress()\r\n");
-    nrf.setRxAddress(DEFAULT_NRF24L01P_ADDRESS,5);
-    pser->printf("setCrcWidth()\r\n");
-    */
+    //configure the pio irq
+    nRFIrq.fall(&nrf_irq);//can set : callback(this, &Counter::increment)
+    nRFIrq.mode(PullNone);
+    nRFIrq.enable_irq();
 
+    //enable Rx DR interrupt
+    nrf.clearbit(nrf::reg::CONFIG,nrf::bit::config::MASK_RX_DR);
 
+    //pser->printf("Start listening\r\n");
     nrf.setMode(nrf::Mode::Rx);
-    nrf.ce_pin_highEnable();
     
 }
 
@@ -244,8 +243,8 @@ void RfMesh::print_nrf()
 {
     nrf.dump_regs();
     nrf.print_info();
-    int irq_status = nRFIrq.read();
-    pser->printf("irq pin %d\n",irq_status);
+    pser->printf("irq pin :%d\n",nRFIrq.read());
+    pser->printf("ce pin  :%d\n",nrf.ce_pin.read());
 }
 
 void RfMesh::setNodeId(uint8_t nid)
@@ -310,5 +309,6 @@ void RfMesh::broadcast_reset()
     brc_message[rfi_pid] =  mesh::p2p::BIT7_BROADCAST | rf_pid_0xC9_reset;
     brc_message[rfi_src] = g_nodeId;
     crc::set(brc_message);
+    print_tab(pser,brc_message,5);
     nrf.transmit_Rx(brc_message,brc_message[rfi_size]+2);
 }

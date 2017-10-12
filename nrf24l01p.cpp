@@ -157,6 +157,7 @@ void Nrf24l01p::setMode(nrf::Mode m)
             //pr->printf("SetMode : Standby\n");
             wait_us(nrf::delay::Tpd2stby_us);
             mode = nrf::Mode::Standby;
+            ce_pin_lowDisable();//otherwise would stay in Rx
         }
         break;
         case nrf::Mode::PowerDown :
@@ -174,6 +175,7 @@ void Nrf24l01p::setMode(nrf::Mode m)
             }
             setbit(nrf::reg::CONFIG,nrf::bit::config::PRIM_RX);
             //pr->printf("SetMode : Rx\n");
+            ce_pin_highEnable();
             mode = nrf::Mode::Rx;
         }
         break;
@@ -186,6 +188,7 @@ void Nrf24l01p::setMode(nrf::Mode m)
             clearbit(nrf::reg::CONFIG,nrf::bit::config::PRIM_RX);//Rx cleared => Tx mode
             //pr->printf("SetMode : Tx\n");
             mode = nrf::Mode::Tx;
+            //could have set ce here, but pulse it later to make sure it is 10 us
         }
         break;
         default:
@@ -370,6 +373,7 @@ void Nrf24l01p::transmit_Rx(uint8_t *payload, uint8_t size)
 //--------------------- Level 3 - Info ----------------------------
 void Nrf24l01p::print_info()
 {
+    pr->printf("____________________________\n");
     print_status();
     print_config();
     print_rf_setup();
