@@ -68,7 +68,7 @@ void rf_message_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     //----------------------- sniffing -----------------------------
-    //handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
+    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
     //--------------------------------------------------------------
     #if P2P_BRIDGE_RETRANSMISSION == 1
         if(check_bridge_retransmissions(data))
@@ -92,7 +92,7 @@ void rf_message_handler(uint8_t *data)
     //--------------- crc check -------------------
     if(!crc::check(data))
     {
-        handler->pser->printf("rx crc Fail\r");//TODO print tab in util
+        handler->pser->printf("rx crc Fail:");//TODO print tab in util
         uint8_t print_size = data[0];
         if(print_size>30)
         {
@@ -105,12 +105,10 @@ void rf_message_handler(uint8_t *data)
     if((data[rfi_pid] & mesh::p2p::BROADCAST_MASK) == mesh::p2p::BROADCAST_MASK)
     {
         //we catched a broadcast, forward it to the user as such
-        handler->pser->printf("call broadcast\r");
         handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Broadcast)](data,user_size);
     }
     else
     {
-        handler->pser->printf("call peer2peer\r");
         rf_peer2peer_handler(data);
     }
 }
@@ -131,7 +129,6 @@ void rf_peer2peer_handler(uint8_t *data)
             //send_ack(data);
             //TODO send the acknowledge
             data[rfi_pid]&= 0x01F;// clear bit7, bit6, bit5 and keep id
-            handler->pser->printf("call Message\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[0]);
         }
         else//it's an acknowledge
@@ -144,12 +141,10 @@ void rf_peer2peer_handler(uint8_t *data)
     {
         if((data[rfi_pid] & mesh::p2p::REQUEST_MASK) == mesh::p2p::REQUEST_MASK)
         {
-            handler->pser->printf("call request\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[0]);
         }
         else
         {
-            handler->pser->printf("call response\r");
             isReturned = 1;
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Response)](data,data[0]);
         }
