@@ -329,3 +329,15 @@ void RfMesh::broadcast_reset()
     //print_tab(pser,brc_message,5);
     nrf.transmit_Rx(brc_message,brc_message[rfi_size]+2);
 }
+
+void RfMesh::broadcast_heat(uint8_t heat)
+{
+    brc_message[rfi_size] = 4;
+    brc_message[rfi_pid] =  mesh::p2p::BIT7_BROADCAST | rf_pid_heat;
+    brc_message[rfi_src] = g_nodeId;
+    brc_message[3] = heat;
+    crc::set(brc_message);
+    //print_tab(pser,brc_message,5);
+    nrf.transmit_Rx(brc_message,brc_message[rfi_size]+2);
+}
+

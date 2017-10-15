@@ -49,6 +49,7 @@ class RfMesh
     public:
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b);
         void broadcast_reset();
+        void broadcast_heat(uint8_t heat);
         private:
         bool send_check_ack();
         uint8_t send_retries();
