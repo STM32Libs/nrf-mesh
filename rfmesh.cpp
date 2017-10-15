@@ -107,7 +107,7 @@ void rf_message_handler(uint8_t *data)
     //--------------- crc check -------------------
     if(!crc::check(data))
     {
-        handler->pser->printf("rx crc Fail\r");//TODO print tab in util
+        handler->pser->printf("rx crc Fail:");//TODO print tab in util
         uint8_t print_size = data[0];
         if(print_size>30)
         {
