@@ -52,8 +52,8 @@ class RfMesh
         uint8_t send_heat(uint8_t dest,uint8_t val);
         void broadcast_reset();
         void broadcast_heat(uint8_t heat);
-        private:
         void send_ack(uint8_t *data);
+    private:
         bool send_check_ack();
         uint8_t send_retries();
         //-------------------------------------------------------------------
