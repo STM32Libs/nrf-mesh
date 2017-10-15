@@ -143,11 +143,10 @@ void rf_peer2peer_handler(uint8_t *data)
     {
         if((data[rfi_pid] & mesh::p2p::MESSAGE_MASK) == mesh::p2p::MESSAGE_MASK)
         {
-            //send_ack(data);
-            //TODO send the acknowledge
             data[rfi_pid]&= 0x01F;// clear bit7, bit6, bit5 and keep id
             //handler->pser->printf("call Message\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[0]);
+            send_ack(data);
         }
         else//it's an acknowledge
         {
@@ -278,7 +277,6 @@ void RfMesh::setAckDelay(uint16_t delay)
     p2p_ack_delay = delay;
 }
 
-
 bool RfMesh::send_check_ack()
 {
     p2p_ack = false;
@@ -303,6 +301,17 @@ uint8_t RfMesh::send_retries()
         retries = 0;
     }
 	return retries;//nb_retries in case of success otherwise 0
+}
+
+void RfMesh::send_ack(uint8_t *data)
+{
+    //Ack           : Size Pid  SrcId DstId CRC
+    p2p_message[rfi_size] = 4;
+    p2p_message[rfi_pid]  = data[rfi_pid] | (mesh::p2p::BIT7_DIRECTED | mesh::p2p::BIT6_MSGACK | mesh::p2p::BIT5_ACK);
+    p2p_message[rfi_src]  = g_nodeId;
+    p2p_message[rfi_dest] = data[rfi_src];
+    crc::set(p2p_message);
+	nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
 }
 
 uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)

@@ -20,6 +20,7 @@ namespace mesh
         uint8_t const BIT6_MSGACK       =   0x40;
         uint8_t const BIT6_REQRESP      =   0x00;
         uint8_t const BIT5_MESSAGE      =   0x20;
+        uint8_t const BIT5_ACK          =   0x00;
     }
 
 }
@@ -52,6 +53,7 @@ class RfMesh
         void broadcast_reset();
         void broadcast_heat(uint8_t heat);
         private:
+        void send_ack(uint8_t *data);
         bool send_check_ack();
         uint8_t send_retries();
         //-------------------------------------------------------------------

@@ -55,6 +55,7 @@
 //BME280        : Size Pid  SrcId  Payload7 CRC
 //---------------- P2P --------------------
 //Protocol      : Size BRPid  Src Dest Payload CRC
+//Ack           : Size Pid  SrcId DstId CRC
 //Ping          : Size Pid  SrcId DstId CRC
 //Pong          : Size Pid  SrcId DstId CRC
 //RGB           : Size Pid  SrcId TrgId  Payload3 CRC
