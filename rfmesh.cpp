@@ -258,10 +258,9 @@ void RfMesh::attach(Callback<void(uint8_t *data,uint8_t size)> func,RfMesh::Call
 
 void RfMesh::print_nrf()
 {
-    nrf.dump_regs();
+    //nrf.dump_regs();
     nrf.print_info();
-    pser->printf("irq pin :%d\n",nRFIrq.read());
-    pser->printf("ce pin  :%d\n",nrf.ce_pin.read());
+    pser->printf("irq pin :%d  ; ce pin  :%d\r",nRFIrq.read(),nrf.ce_pin.read());
 }
 
 void RfMesh::setNodeId(uint8_t nid)
