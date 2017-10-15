@@ -29,6 +29,13 @@ void nrf_irq()
 {
     //on multi instance should derive the id from the irq
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
+
+
+    //handler->pser->printf("into irq   : irq %d, ce %d\r",handler->nRFIrq.read(), handler->nrf.ce_pin.read());
+    
+    //--------------------------------------------------------------------------------------------------
+    //------------- see note c from datasheet on handling RX_DR IRQ on steps 1) 2) 3) ------------------
+    //--------------------------------------------------------------------------------------------------
     //decide here which irq to call
     uint8_t status = handler->nrf.readStatus();
     if(status & nrf::bit::status::RX_DR)
@@ -47,28 +54,36 @@ void nrf_irq()
             #else
             uint8_t rf_size = 32;
             #endif
-            handler->nrf.readBuffer(nrf::cmd::R_RX_PLOAD,data,rf_size);
+            handler->nrf.readBuffer(nrf::cmd::R_RX_PLOAD,data,rf_size);             // 1) - read payload through SPI
+            //handler->pser->printf("buffer read : irq %d, ce %d\r",handler->nRFIrq.read(), handler->nrf.ce_pin.read());
+            handler->nrf.setbit(nrf::reg::STATUS, nrf::bit::status::RX_DR );        // 2) - clear RX_DR IRQ : this should set the IRQ pin back up
+            //handler->pser->printf("RX_RD cleared : irq %d, ce %d\r",handler->nRFIrq.read(), handler->nrf.ce_pin.read());
             rf_message_handler(data);
             //reread the status to check if you need to get another buffer
             status = handler->nrf.readStatus();
-            rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;
+            rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;                   // 3) - read FIFO status, if more data repeat step 1)
         }
         if(max_reread == 0)
         {
-            handler->pser->printf("max_reread\r");
+            handler->pser->printf("Error>max_reread\r");
             //do something as we might have been stuck or Under DoS Attack
         }
     }
-    // Clear any pending interrupts
-    handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::status::MAX_RT | nrf::bit::status::TX_DS | nrf::bit::status::RX_DR );
+    else
+    {
+        //handler->pser->printf("--> Other interrupt Not RX\r");
+        // Clear any pending interrupts
+        handler->nrf.writeRegister(nrf::reg::STATUS,    nrf::bit::status::MAX_RT | nrf::bit::status::TX_DS | nrf::bit::status::RX_DR );
+    }
 
+    //handler->pser->printf("out of irq : irq %d, ce %d\r",handler->nRFIrq.read(), handler->nrf.ce_pin.read());
 }
 
 void rf_message_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     //----------------------- sniffing -----------------------------
-    //handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
+    handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
     //--------------------------------------------------------------
     #if P2P_BRIDGE_RETRANSMISSION == 1
         if(check_bridge_retransmissions(data))
@@ -105,12 +120,12 @@ void rf_message_handler(uint8_t *data)
     if((data[rfi_pid] & mesh::p2p::BROADCAST_MASK) == mesh::p2p::BROADCAST_MASK)
     {
         //we catched a broadcast, forward it to the user as such
-        handler->pser->printf("call broadcast\r");
+        //handler->pser->printf("call broadcast\r");
         handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Broadcast)](data,user_size);
     }
     else
     {
-        handler->pser->printf("call peer2peer\r");
+        //handler->pser->printf("call peer2peer\r");
         rf_peer2peer_handler(data);
     }
 }
@@ -121,7 +136,7 @@ void rf_peer2peer_handler(uint8_t *data)
 
     if(data[rfi_dst] != g_nodeId)
     {
-        handler->pser->printf("not this node id\r");
+        //handler->pser->printf("not this node id\r");
         return;//as this packet is not directed to us
     }
     if((data[rfi_pid] & mesh::p2p::TYPE_MASK) == mesh::p2p::TYPE_MSQ_ACK)
@@ -131,12 +146,12 @@ void rf_peer2peer_handler(uint8_t *data)
             //send_ack(data);
             //TODO send the acknowledge
             data[rfi_pid]&= 0x01F;// clear bit7, bit6, bit5 and keep id
-            handler->pser->printf("call Message\r");
+            //handler->pser->printf("call Message\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[0]);
         }
         else//it's an acknowledge
         {
-            handler->pser->printf("is returned\r");
+            //handler->pser->printf("is returned\r");
             isReturned = 1;
         }
     }
@@ -144,12 +159,12 @@ void rf_peer2peer_handler(uint8_t *data)
     {
         if((data[rfi_pid] & mesh::p2p::REQUEST_MASK) == mesh::p2p::REQUEST_MASK)
         {
-            handler->pser->printf("call request\r");
+            //handler->pser->printf("call request\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[0]);
         }
         else
         {
-            handler->pser->printf("call response\r");
+            //handler->pser->printf("call response\r");
             isReturned = 1;
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Response)](data,data[0]);
         }
@@ -158,7 +173,7 @@ void rf_peer2peer_handler(uint8_t *data)
     {
         if((p2p_expected_Pid & 0x1F) == (data[rfi_pid] & 0x1F) && (data[rfi_dst] == g_nodeId)  )
         {
-            handler->pser->printf("ack ok\r");
+            //handler->pser->printf("p2p_ack :ok\r");
             p2p_ack = true;//notify the re-transmitter
         }
     }
@@ -181,7 +196,7 @@ RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, Pi
     //current implementation with a single instance
 }
 
-void RfMesh::init()
+void RfMesh::init(uint8_t chan)
 {
     wait_ms(100);//Let the Power get stable
 
@@ -190,8 +205,10 @@ void RfMesh::init()
 
     //pser->printf("Configuration\r\n");
     
-    //disable all interrupts
-    nrf.writeRegister(nrf::reg::CONFIG,0);//All interrupts disabled - no CRC
+    //disable all interrupts - no CRC
+    nrf.writeRegister(nrf::reg::CONFIG, nrf::bit::config::MASK_RX_DR | 
+                                        nrf::bit::config::MASK_TX_DS | 
+                                        nrf::bit::config::MASK_MAX_RT );
     
     nrf.setMode(nrf::Mode::PowerDown);//Power Down
 
@@ -218,7 +235,7 @@ void RfMesh::init()
     //pser->printf("set_CrcConfig(NoCrc)\r\n");
     nrf.setCrcConfig(nrf::crc::NoCrc);
     //pser->printf("set_RF_Channel(2) 2402 MHz\r\n");
-    nrf.selectChannel(2);
+    nrf.selectChannel(chan);
 
     //configure the pio irq
     nRFIrq.fall(&nrf_irq);//can set : callback(this, &Counter::increment)
@@ -269,6 +286,7 @@ bool RfMesh::send_check_ack()
     p2p_expected_Pid = p2p_message[rfi_pid];//Pid
 	nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
 	wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
+    //pser->printf("p2p_ack :%d\r",p2p_ack);
     return p2p_ack;
 }
 
@@ -299,7 +317,7 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
     p2p_message[5] = g;
     p2p_message[6] = b;
     crc::set(p2p_message);
-    print_tab(pser,p2p_message,9);
+    //print_tab(pser,p2p_message,9);
     return send_retries();
 }
 
@@ -309,6 +327,6 @@ void RfMesh::broadcast_reset()
     brc_message[rfi_pid] =  mesh::p2p::BIT7_BROADCAST | rf_pid_0xC9_reset;
     brc_message[rfi_src] = g_nodeId;
     crc::set(brc_message);
-    print_tab(pser,brc_message,5);
+    //print_tab(pser,brc_message,5);
     nrf.transmit_Rx(brc_message,brc_message[rfi_size]+2);
 }
