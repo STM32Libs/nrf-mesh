@@ -49,6 +49,7 @@
 //Temperature   : Size Pid  SrcId  Payload2    CRC
 //Alive         : Size Pid  SrcId  CRC
 //Reset         : Size Pid  SrcId  CRC
+//Heat          : Size Pid  SrcId  heat_val CRC
 //Light         : Size Pid  SrcId  Payload2 CRC
 //Magnet        : Size Pid  SrcId  CRC
 //BME280        : Size Pid  SrcId  Payload7 CRC

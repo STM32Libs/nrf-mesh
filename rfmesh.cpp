@@ -320,6 +320,19 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
     return send_retries();
 }
 
+uint8_t RfMesh::send_heat(uint8_t dest,uint8_t val)
+{
+    p2p_message[rfi_size] = 5;
+    p2p_message[rfi_pid] =  mesh::p2p::BIT7_DIRECTED    | mesh::p2p::BIT6_MSGACK | 
+                            mesh::p2p::BIT5_MESSAGE     | rf_pid_heat;
+    p2p_message[rfi_src] = g_nodeId;
+    p2p_message[rfi_dst] = dest;
+    p2p_message[4] = val;
+    crc::set(p2p_message);
+    //print_tab(pser,p2p_message,9);
+    return send_retries();
+}
+
 void RfMesh::broadcast_reset()
 {
     brc_message[rfi_size] = 3;
