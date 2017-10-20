@@ -314,6 +314,29 @@ void RfMesh::send_ack(uint8_t *data)
 	nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
 }
 
+uint8_t RfMesh::send_msg(uint8_t* buf)
+{
+    uint8_t res = false;
+    p2p_message[rfi_size] = buf[0];
+    uint8_t msg_size = p2p_message[rfi_size];
+    for(int i=1;i<msg_size;i++)
+    {
+        p2p_message[i] = buf[i];
+    }
+    crc::set(p2p_message);
+
+    if(p2p_message[rfi_pid] & mesh::p2p::BIT7_BROADCAST)
+    {
+        nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
+        res = true;
+    }
+    else//directed
+    {
+        res = send_retries();
+    }
+    return res;
+}
+
 uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
 {
     p2p_message[rfi_size] = 7;

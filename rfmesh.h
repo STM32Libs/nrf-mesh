@@ -48,6 +48,7 @@ class RfMesh
         void setAckDelay(uint16_t delay);
         //---------------------------- Communication ------------------------
     public:
+        uint8_t send_msg(uint8_t* buf);
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b);
         uint8_t send_heat(uint8_t dest,uint8_t val);
         void broadcast_reset();

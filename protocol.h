@@ -87,6 +87,7 @@
 //---Messages [5] = 1
 #define rf_pid_rgb 		                0x19
 #define rf_pid_heat		                0x18
+#define rf_pid_light		            0x7B
 #define rf_pid_ping                     0x04
 #define rf_pid_0x67_test_switchChan     0x67
 //---Acknowledge [5] = 0
