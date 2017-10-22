@@ -239,6 +239,8 @@ void RfMesh::init(uint8_t chan)
     //configure the pio irq
     nRFIrq.fall(&nrf_irq);//can set : callback(this, &Counter::increment)
     nRFIrq.mode(PullNone);
+    NVIC_SetPriority(EXTI4_IRQn,10);//10 as relative low
+
     nRFIrq.enable_irq();
 
     //enable Rx DR interrupt
@@ -257,7 +259,7 @@ void RfMesh::attach(Callback<void(uint8_t *data,uint8_t size)> func,RfMesh::Call
 
 void RfMesh::print_nrf()
 {
-    //nrf.dump_regs();
+    nrf.dump_regs();
     nrf.print_info();
     pser->printf("irq pin :%d  ; ce pin  :%d\r",nRFIrq.read(),nrf.ce_pin.read());
 }
