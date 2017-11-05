@@ -5,6 +5,8 @@
 #include "protocol.h"
 #include "utils.h"
 
+//DigitalOut debug_rf(PB_13);
+
 #define NRF_NUM (1)
 
 static uint32_t nrf_handlers[NRF_NUM] = {0};
@@ -179,9 +181,9 @@ void rf_peer2peer_handler(uint8_t *data)
 }
 
 
-RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):
+RfMesh::RfMesh(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):
                             //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq
-                            nrf(ps, ce, csn, sck, mosi, miso),
+                            nrf(ps,spi_mod, ce, csn, sck, mosi, miso),
                             pser(ps),
                             nRFIrq(irq)
 {
@@ -283,8 +285,11 @@ bool RfMesh::send_check_ack()
 {
     p2p_ack = false;
     p2p_expected_Pid = p2p_message[rfi_pid];//Pid
-	nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
-	wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
+    nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
+    if(p2p_ack_delay!=0)
+    {
+        wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
+    }
     //pser->printf("p2p_ack :%d\r",p2p_ack);
     return p2p_ack;
 }
@@ -319,14 +324,16 @@ void RfMesh::send_ack(uint8_t *data)
 uint8_t RfMesh::send_msg(uint8_t* buf)
 {
     uint8_t res = false;
+
     p2p_message[rfi_size] = buf[0];
     uint8_t msg_size = p2p_message[rfi_size];
     for(int i=1;i<msg_size;i++)
     {
         p2p_message[i] = buf[i];
     }
-    crc::set(p2p_message);
 
+    crc::set(p2p_message);
+    
     if(p2p_message[rfi_pid] & mesh::p2p::BIT7_BROADCAST)
     {
         nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
@@ -336,6 +343,7 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
     {
         res = send_retries();
     }
+    
     return res;
 }
 

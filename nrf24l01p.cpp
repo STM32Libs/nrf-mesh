@@ -1,14 +1,17 @@
 
 #include "nrf24l01p.h"
 
-Nrf24l01p::Nrf24l01p(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso):
+//DigitalOut debug_send(PB_13);
+
+Nrf24l01p::Nrf24l01p(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso):
+                pr(ps),
+                spi_module(spi_mod),
                 spi(mosi,miso,sck),
-                csn_pin(csn),
                 ce_pin(ce),
-                mode(nrf::Mode::Uninitialised),
-                pr(ps)
+                csn_pin(csn),
+                mode(nrf::Mode::Uninitialised)
 {
-    //spi default @10 Mbps
+    spi.frequency(10000000);//10 MHz
     ce_pin_lowDisable();
     csn_pin_highClear();
 }
@@ -33,6 +36,27 @@ void Nrf24l01p::csn_pin_highClear()
     csn_pin = 1;
 }
 
+//TODO this is not working for the readstatus that keeps polling on wait transmit
+uint8_t Nrf24l01p::spi_write(uint8_t val)
+{
+    uint8_t res = 0;
+    if(spi_module == 1)
+    {
+        while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+        SPI1->DR = val;
+        while((SPI1->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
+        res = SPI1->DR;
+    }
+    else
+    {
+        while((SPI2->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+        SPI2->DR = val;
+        while((SPI2->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
+        res = SPI2->DR;
+    }
+    return res;
+}
+
 //--------------------- Level 1 ----------------------------
 void Nrf24l01p::command(uint8_t v_cmd)
 {
@@ -41,7 +65,7 @@ void Nrf24l01p::command(uint8_t v_cmd)
     ce_pin_lowDisable();
     csn_pin_lowSelect();
 
-    spi.write(v_cmd);
+    spi_write(v_cmd);
 
     csn_pin_highClear();
     if(last_ce)
@@ -61,8 +85,8 @@ uint8_t Nrf24l01p::writeRegister(uint8_t reg,uint8_t val)
     ce_pin_lowDisable();
     csn_pin_lowSelect();
 
-    res = spi.write(nrf::cmd::WRITE_REG | reg);
-    spi.write(val);
+    res = spi_write(nrf::cmd::WRITE_REG | reg);
+    spi_write(val);
 
     csn_pin_highClear();
     if(last_ce)
@@ -79,14 +103,15 @@ uint8_t Nrf24l01p::readRegister(uint8_t reg)
 {
     csn_pin_lowSelect();
 
-    spi.write(nrf::cmd::READ_REG | reg);
-    uint8_t res_val = spi.write(nrf::cmd::NOP);
+    spi_write(nrf::cmd::READ_REG | reg);
+    uint8_t res_val = spi_write(nrf::cmd::NOP);
 
     csn_pin_highClear();
 
     return res_val;
 }
 
+//TODO this function does not work properly when used with spi_write never returns 0x2e on wait transmit
 uint8_t Nrf24l01p::readStatus()
 {
     csn_pin_lowSelect();
@@ -116,12 +141,17 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
     ce_pin_lowDisable();
     csn_pin_lowSelect();
 
-    spi.write(add);
+    //spi_write(add);
+    while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+    SPI1->DR = add;
+
     for(int i=0;i<size;i++)
     {
-        spi.write(*buf++);
+        //spi_write(*buf++);
+        while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+        SPI1->DR = *buf++;
     }
-
+    
     csn_pin_highClear();
     if(last_ce)
     {
@@ -136,10 +166,19 @@ void Nrf24l01p::readBuffer(uint8_t add,uint8_t *buf,uint8_t size)
 {
     csn_pin_lowSelect();
 
-    spi.write(add);
+    //spi_write(add);
+    while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+    SPI1->DR = add;
+    while((SPI1->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
+    uint8_t trash = SPI1->DR;
+
     for(int i=0;i<size;i++)
     {
-        (*buf++) = spi.write(nrf::cmd::NOP);
+        //(*buf++) = spi_write(nrf::cmd::NOP);
+        while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+        SPI1->DR = 0;
+        while((SPI1->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
+        (*buf++) = SPI1->DR;
     }
 
     csn_pin_highClear();
