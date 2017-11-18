@@ -19,25 +19,9 @@ Proto::Proto(Serial *ps):pser(ps)
 
 }
 
-void Proto::rf_get_tx_alive_3B(uint8_t NodeId, uint8_t* tx_data)
-{
-      tx_data[0]= rf_pid_0xF5_alive;
-      tx_data[1]= NodeId;
-      tx_data[2]= tx_data[0] ^ NodeId;
-}
-
-//Rx 3 Bytes
 void Proto::rx_alive(uint8_t src_NodeId)
 {
 	pser->printf("NodeId:%d;is_Alive\r",src_NodeId);
-}
-
-// Reset
-void Proto::rf_get_tx_reset_3B(uint8_t NodeId, uint8_t* tx_data)
-{
-      tx_data[0]= rf_pid_0xC9_reset;
-      tx_data[1]= NodeId;
-      tx_data[2]= tx_data[0] ^ NodeId;
 }
 
 void Proto::rx_reset(uint8_t src_NodeId)
@@ -45,7 +29,6 @@ void Proto::rx_reset(uint8_t src_NodeId)
 	pser->printf("NodeId:%d;was:Reset\r");
 }
 
-//Rx 5 Bytes
 void Proto::rx_light(uint8_t src_NodeId,uint8_t *rxPayload)
 {
 	unsigned int SensorVal = rxPayload[0];
@@ -54,7 +37,6 @@ void Proto::rx_light(uint8_t src_NodeId,uint8_t *rxPayload)
 	pser->printf("NodeId:%d;Light:%u\r",src_NodeId,SensorVal);
 }
 
-//Rx 4 Bytes
 void Proto::rx_magnet(uint8_t src_NodeId,uint8_t *rxPayload)
 {
 	pser->printf("NodeId:%d;Magnet:",src_NodeId);

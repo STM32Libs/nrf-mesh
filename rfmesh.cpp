@@ -14,6 +14,7 @@ static void nrf_donothing(uint8_t *data,uint8_t size) {};
 //forward declaration
 void rf_message_handler(uint8_t *data);
 void rf_peer2peer_handler(uint8_t *data);
+void rf_bridge_handler(uint8_t *data);
 
 uint8_t p2p_message[32];//size included
 uint8_t brc_message[32];//size included
@@ -84,43 +85,37 @@ void rf_message_handler(uint8_t *data)
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     //----------------------- sniffing -----------------------------
     handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Sniff)](data,32);
-    //--------------------------------------------------------------
-    #if P2P_BRIDGE_RETRANSMISSION == 1
-        if(check_bridge_retransmissions(data))
-        {
-            return;//it is not directed to this node and just retransmitted
-        }
-    #endif
-    //--------------- retransmission check -------------------
-    if((data[0] & 0xF0) == 0xD0)
-    {
-        uint8_t ttl = data[1] & 0x0F;
-        handler->pser->printf("RTX:%d;",ttl);
-        data+=2;//retransmission header is removed, data[0] now have the beginning of the retransmission payload
-    }
     //--------------- size check -------------------
-    if(data[0] > 30)//failure, crc should not be checked is unsafe
+    if(data[0] > 32)//failure, crc should not be checked is unsafe
     {
-        handler->pser->printf("rx size Fail:%d\r",data[0]);
+        #if (DEBUG_SIZE_FAIL == 1)
+            handler->pser->printf("rx size Fail:%d\r",data[0]);
+        #endif
         return;
     }
     //--------------- crc check -------------------
     if(!crc::check(data))
     {
-        handler->pser->printf("rx crc Fail:");//TODO print tab in util
-        uint8_t print_size = data[0];
-        if(print_size>30)
-        {
-            print_size = 30;
-        }
-        print_tab(handler->pser,data,print_size);
+        #if (DEBUG_CRC_FAIL == 1)
+            handler->pser->printf("rx crc Fail:");//TODO print tab in util
+            uint8_t print_size = data[rf::ind::size];
+            if(print_size>30)
+            {
+                print_size = 30;
+            }
+            print_tab(handler->pser,data,print_size);
+        #endif
         return;
     }
-    uint8_t user_size = data[0];
-    if((data[rfi_pid] & mesh::p2p::BROADCAST_MASK) == mesh::p2p::BROADCAST_MASK)
+    if(handler->isBridge)
+    {
+        rf_bridge_handler(data);
+    }
+    if((data[rf::ind::control] & 0x80) == rf::ctr::Broadcast)
     {
         //we catched a broadcast, forward it to the user as such
         //handler->pser->printf("call broadcast\r");
+        uint8_t user_size = data[rf::ind::size];
         handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Broadcast)](data,user_size);
     }
     else
@@ -130,23 +125,39 @@ void rf_message_handler(uint8_t *data)
     }
 }
 
+//at this point, the size and crc are already verified
+void rf_bridge_handler(uint8_t *data)
+{
+    RfMesh *handler = (RfMesh*)nrf_handlers[0];
+    uint8_t time_to_live = data[rf::ind::control] & rf::ctr::ttl_mask;
+    if(time_to_live != 0)
+    {
+        time_to_live--;
+        data[rf::ind::control] = (data[rf::ind::control] & rf::ctr::ttl_clear) + time_to_live;
+    }
+    crc::set(data);
+	handler->nrf.transmit_Rx(data,data[rf::ind::size]+2);
+}
+
 void rf_peer2peer_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
 
-    if(data[rfi_dst] != g_nodeId)
+    if(data[rf::ind::dest] != g_nodeId)
     {
         //handler->pser->printf("not this node id\r");
         return;//as this packet is not directed to us
     }
-    if((data[rfi_pid] & mesh::p2p::TYPE_MASK) == mesh::p2p::TYPE_MSQ_ACK)
+    if((data[rf::ind::control] & 0x40) == rf::ctr::Msg_Ack)
     {
-        if((data[rfi_pid] & mesh::p2p::MESSAGE_MASK) == mesh::p2p::MESSAGE_MASK)
+        if((data[rf::ind::control] & 0x20) == rf::ctr::Message)
         {
-            data[rfi_pid]&= 0x01F;// clear bit7, bit6, bit5 and keep id
             //handler->pser->printf("call Message\r");
-            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[0]);
-            handler->send_ack(data);
+            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[rf::ind::size]);
+            if((data[rf::ind::control] & 0x10) == rf::ctr::Send_Ack )
+            {
+                handler->send_ack(data);
+            }
         }
         else//it's an acknowledge
         {
@@ -156,21 +167,21 @@ void rf_peer2peer_handler(uint8_t *data)
     }
     else//it's Request / Response
     {
-        if((data[rfi_pid] & mesh::p2p::REQUEST_MASK) == mesh::p2p::REQUEST_MASK)
+        if((data[rf::ind::control] & 0x20) == rf::ctr::Request)
         {
             //handler->pser->printf("call request\r");
-            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[0]);
+            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[rf::ind::size]);
         }
         else
         {
             //handler->pser->printf("call response\r");
             isReturned = 1;
-            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Response)](data,data[0]);
+            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Response)](data,data[rf::ind::size]);
         }
     }
     if(isReturned)
     {
-        if((p2p_expected_Pid & 0x1F) == (data[rfi_pid] & 0x1F) && (data[rfi_dst] == g_nodeId)  )
+        if((p2p_expected_Pid == data[rf::ind::pid]) && (data[rf::ind::dest] == g_nodeId)  )
         {
             //handler->pser->printf("p2p_ack :ok\r");
             p2p_ack = true;//notify the re-transmitter
@@ -246,9 +257,15 @@ void RfMesh::init(uint8_t chan)
 
     //pser->printf("Start listening\r\n");
     nrf.setMode(nrf::Mode::Rx);
+
+    isBridge = false;
     
 }
 
+void RfMesh::setBridgeMode()
+{
+    isBridge = true;
+}
 
 void RfMesh::attach(Callback<void(uint8_t *data,uint8_t size)> func,RfMesh::CallbackType type)
 {
@@ -280,8 +297,8 @@ void RfMesh::setAckDelay(uint16_t delay)
 bool RfMesh::send_check_ack()
 {
     p2p_ack = false;
-    p2p_expected_Pid = p2p_message[rfi_pid];//Pid
-	nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
+    p2p_expected_Pid = p2p_message[rf::ind::pid];//Pid
+	nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
 	wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
     //pser->printf("p2p_ack :%d\r",p2p_ack);
     return p2p_ack;
@@ -306,28 +323,29 @@ uint8_t RfMesh::send_retries()
 void RfMesh::send_ack(uint8_t *data)
 {
     //Ack           : Size Pid  SrcId DstId CRC
-    p2p_message[rfi_size] = 4;
-    p2p_message[rfi_pid]  = data[rfi_pid] | (mesh::p2p::BIT7_DIRECTED | mesh::p2p::BIT6_MSGACK | mesh::p2p::BIT5_ACK);
-    p2p_message[rfi_src]  = g_nodeId;
-    p2p_message[rfi_dst] = data[rfi_src];
+    p2p_message[rf::ind::size]      = 5;
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Acknowledge;
+    p2p_message[rf::ind::pid]       = data[rf::ind::pid];
+    p2p_message[rf::ind::source]    = g_nodeId;
+    p2p_message[rf::ind::dest]      = data[rf::ind::source];
     crc::set(p2p_message);
-	nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
+	nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
 }
 
 uint8_t RfMesh::send_msg(uint8_t* buf)
 {
     uint8_t res = false;
-    p2p_message[rfi_size] = buf[0];
-    uint8_t msg_size = p2p_message[rfi_size];
+    p2p_message[rf::ind::size] = buf[0];
+    uint8_t msg_size = p2p_message[rf::ind::size];
     for(int i=1;i<msg_size;i++)
     {
         p2p_message[i] = buf[i];
     }
     crc::set(p2p_message);
 
-    if(p2p_message[rfi_pid] & mesh::p2p::BIT7_BROADCAST)
+    if(p2p_message[rf::ind::pid] & rf::ctr::Broadcast)
     {
-        nrf.transmit_Rx(p2p_message,p2p_message[rfi_size]+2);
+        nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
         res = true;
     }
     else//directed
@@ -339,14 +357,14 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
 
 uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
 {
-    p2p_message[rfi_size] = 7;
-    p2p_message[rfi_pid] =  mesh::p2p::BIT7_DIRECTED    | mesh::p2p::BIT6_MSGACK | 
-                            mesh::p2p::BIT5_MESSAGE     | rf_pid_rgb;
-    p2p_message[rfi_src] = g_nodeId;
-    p2p_message[rfi_dst] = dest;
-    p2p_message[4] = r;
-    p2p_message[5] = g;
-    p2p_message[6] = b;
+    p2p_message[rf::ind::size]  = 8;
+    p2p_message[rf::ind::pid]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | rf::ctr::Send_Ack;
+    p2p_message[rf::ind::pid]   =  rf::pid::rgb;
+    p2p_message[rf::ind::source]= g_nodeId;
+    p2p_message[rf::ind::dest]  = dest;
+    p2p_message[5] = r;
+    p2p_message[6] = g;
+    p2p_message[7] = b;
     crc::set(p2p_message);
     //print_tab(pser,p2p_message,9);
     return send_retries();
@@ -354,35 +372,36 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
 
 uint8_t RfMesh::send_heat(uint8_t dest,uint8_t val)
 {
-    p2p_message[rfi_size] = 5;
-    p2p_message[rfi_pid] =  mesh::p2p::BIT7_DIRECTED    | mesh::p2p::BIT6_MSGACK | 
-                            mesh::p2p::BIT5_MESSAGE     | rf_pid_heat;
-    p2p_message[rfi_src] = g_nodeId;
-    p2p_message[rfi_dst] = dest;
-    p2p_message[4] = val;
+    p2p_message[rf::ind::size]      = 6;
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | rf::ctr::Send_Ack;
+    p2p_message[rf::ind::pid]       = rf::pid::heat;
+    p2p_message[rf::ind::source]    = g_nodeId;
+    p2p_message[rf::ind::dest]      = dest;
+    p2p_message[5] = val;
     crc::set(p2p_message);
     //print_tab(pser,p2p_message,9);
     return send_retries();
 }
 
-void RfMesh::broadcast_reset()
+void RfMesh::broadcast(uint8_t pid)
 {
-    brc_message[rfi_size] = 3;
-    brc_message[rfi_pid] =  mesh::p2p::BIT7_BROADCAST | rf_pid_0xC9_reset;
-    brc_message[rfi_src] = g_nodeId;
+    brc_message[rf::ind::size]      = 4;
+    brc_message[rf::ind::control]   = rf::ctr::Broadcast;
+    brc_message[rf::ind::pid]       = pid;
+    brc_message[rf::ind::source]    = g_nodeId;
     crc::set(brc_message);
-    //print_tab(pser,brc_message,5);
-    nrf.transmit_Rx(brc_message,brc_message[rfi_size]+2);
+    nrf.transmit_Rx(brc_message,brc_message[rf::ind::size]+2);
 }
 
 void RfMesh::broadcast_heat(uint8_t heat)
 {
-    brc_message[rfi_size] = 4;
-    brc_message[rfi_pid] =  mesh::p2p::BIT7_BROADCAST | rf_pid_heat;
-    brc_message[rfi_src] = g_nodeId;
-    brc_message[3] = heat;
+    brc_message[rf::ind::size]      = 5;
+    brc_message[rf::ind::control]   = rf::ctr::Broadcast;
+    brc_message[rf::ind::pid]       = rf::pid::heat;
+    brc_message[rf::ind::source]    = g_nodeId;
+    brc_message[4] = heat;
     crc::set(brc_message);
     //print_tab(pser,brc_message,5);
-    nrf.transmit_Rx(brc_message,brc_message[rfi_size]+2);
+    nrf.transmit_Rx(brc_message,brc_message[rf::ind::size]+2);
 }
 

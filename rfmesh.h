@@ -7,21 +7,6 @@
 
 namespace mesh
 {
-    namespace p2p
-    {
-        uint8_t const BROADCAST_MASK    =   0x80;
-        uint8_t const TYPE_MASK         =   0x40;
-        uint8_t const TYPE_MSQ_ACK      =   0x40;
-        uint8_t const MESSAGE_MASK      =   0x20;
-        uint8_t const REQUEST_MASK      =   0x20;
-
-        uint8_t const BIT7_DIRECTED     =   0x00;
-        uint8_t const BIT7_BROADCAST    =   0x80;
-        uint8_t const BIT6_MSGACK       =   0x40;
-        uint8_t const BIT6_REQRESP      =   0x00;
-        uint8_t const BIT5_MESSAGE      =   0x20;
-        uint8_t const BIT5_ACK          =   0x00;
-    }
 
 }
 
@@ -46,13 +31,14 @@ class RfMesh
         void setNodeId(uint8_t nid);
         void setRetries(uint8_t nb_retries);
         void setAckDelay(uint16_t delay);
+        void setBridgeMode();
         //---------------------------- Communication ------------------------
     public:
+        void broadcast(uint8_t pid);
+        void broadcast_heat(uint8_t heat);
         uint8_t send_msg(uint8_t* buf);
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b);
         uint8_t send_heat(uint8_t dest,uint8_t val);
-        void broadcast_reset();
-        void broadcast_heat(uint8_t heat);
         void send_ack(uint8_t *data);
     private:
         bool send_check_ack();
@@ -63,6 +49,7 @@ public:
         Serial      *pser;
         Callback<void(uint8_t *data,uint8_t size)> _callbacks[static_cast<int>(CallbackType::CallbackCnt)];
         InterruptIn nRFIrq;
+        bool        isBridge;
 };
 
 #endif /*__NRFMESH__*/
