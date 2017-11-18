@@ -24,7 +24,7 @@ class RfMesh
     };
 
     public:
-        RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq = NC);
+        RfMesh(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq = NC);
         void init(uint8_t chan);
         void print_nrf();
         void attach(Callback<void(uint8_t *data,uint8_t size)> func,CallbackType type);

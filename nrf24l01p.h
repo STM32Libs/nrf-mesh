@@ -149,7 +149,7 @@ class Nrf24l01p
 public:
     //nRF24L01+ pins:
     //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq 
-    Nrf24l01p(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso);
+    Nrf24l01p(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso);
 
     //--------------------- Level 3 - Info ----------------------------
     void print_info();
@@ -188,6 +188,8 @@ public:
     void flushRX();
     
     //--------------------- Level 1 ----------------------------
+    uint8_t spi_write(uint8_t val);
+
     uint8_t writeRegister(uint8_t reg,uint8_t val);
     uint8_t readRegister(uint8_t reg);
     uint8_t readStatus();//faster than readRegister(status);
@@ -211,6 +213,7 @@ public:
 
 public:
     SPI         spi;
+    uint8_t     spi_module;
     DigitalOut  csn_pin;
     DigitalOut  ce_pin;
     Serial      *pr;

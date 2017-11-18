@@ -5,6 +5,8 @@
 #include "protocol.h"
 #include "utils.h"
 
+//DigitalOut debug_rf(PB_13);
+
 #define NRF_NUM (1)
 
 static uint32_t nrf_handlers[NRF_NUM] = {0};
@@ -190,9 +192,9 @@ void rf_peer2peer_handler(uint8_t *data)
 }
 
 
-RfMesh::RfMesh(Serial *ps,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):
+RfMesh::RfMesh(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso,PinName irq):
                             //1:Gnd, 2:3.3v, 3:ce, 4:csn, 5:sck, 6:mosi, 7:miso, 8:irq
-                            nrf(ps, ce, csn, sck, mosi, miso),
+                            nrf(ps,spi_mod, ce, csn, sck, mosi, miso),
                             pser(ps),
                             nRFIrq(irq)
 {
@@ -250,6 +252,8 @@ void RfMesh::init(uint8_t chan)
     //configure the pio irq
     nRFIrq.fall(&nrf_irq);//can set : callback(this, &Counter::increment)
     nRFIrq.mode(PullNone);
+    NVIC_SetPriority(EXTI4_IRQn,10);//10 as relative low
+
     nRFIrq.enable_irq();
 
     //enable Rx DR interrupt
@@ -274,7 +278,7 @@ void RfMesh::attach(Callback<void(uint8_t *data,uint8_t size)> func,RfMesh::Call
 
 void RfMesh::print_nrf()
 {
-    //nrf.dump_regs();
+    nrf.dump_regs();
     nrf.print_info();
     pser->printf("irq pin :%d  ; ce pin  :%d\r",nRFIrq.read(),nrf.ce_pin.read());
 }
@@ -298,8 +302,12 @@ bool RfMesh::send_check_ack()
 {
     p2p_ack = false;
     p2p_expected_Pid = p2p_message[rf::ind::pid];//Pid
-	nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
-	wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
+    nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
+    //if we want the receiver to send back an Acknowledge
+    if((p2p_message[rf::ind::control] & 0x10) == rf::ctr::Send_Ack)
+    {
+        wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
+    }
     //pser->printf("p2p_ack :%d\r",p2p_ack);
     return p2p_ack;
 }
@@ -342,7 +350,7 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
         p2p_message[i] = buf[i];
     }
     crc::set(p2p_message);
-
+    
     if(p2p_message[rf::ind::pid] & rf::ctr::Broadcast)
     {
         nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
@@ -352,6 +360,7 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
     {
         res = send_retries();
     }
+    
     return res;
 }
 
