@@ -162,6 +162,8 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
 
 }
 
+volatile uint8_t trash;
+
 void Nrf24l01p::readBuffer(uint8_t add,uint8_t *buf,uint8_t size)
 {
     csn_pin_lowSelect();
@@ -170,7 +172,7 @@ void Nrf24l01p::readBuffer(uint8_t add,uint8_t *buf,uint8_t size)
     while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
     SPI1->DR = add;
     while((SPI1->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
-    uint8_t trash = SPI1->DR;
+    trash = SPI1->DR;
 
     for(int i=0;i<size;i++)
     {

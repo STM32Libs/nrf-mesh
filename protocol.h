@@ -23,6 +23,8 @@ namespace rf
         uint8_t const pid       = 2;
         uint8_t const source    = 3;
         uint8_t const dest      = 4;
+        uint8_t const bcst_payload  = 4;
+        uint8_t const p2p_payload  = 5;
     }
 
     namespace ctr
@@ -58,7 +60,7 @@ namespace rf
         uint8_t const light         = 0x07;//both sensor and order
         uint8_t const temperature   = 0x08;//is a temperature sensor
         uint8_t const heat          = 0x09;//is temperature heating order
-        uint8_t const bm280         = 0x0A;
+        uint8_t const bme280         = 0x0A;
         uint8_t const rgb           = 0x0B;
         uint8_t const magnet        = 0x0C;
     }

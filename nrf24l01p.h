@@ -212,11 +212,11 @@ public:
     void csn_pin_highClear();
 
 public:
-    SPI         spi;
-    uint8_t     spi_module;
-    DigitalOut  csn_pin;
-    DigitalOut  ce_pin;
     Serial      *pr;
+    uint8_t     spi_module;
+    SPI         spi;
+    DigitalOut  ce_pin;
+    DigitalOut  csn_pin;
     //mode as variable is subject to inconsistency used minimally
     nrf::Mode     mode;
 };
