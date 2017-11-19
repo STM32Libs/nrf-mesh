@@ -19,40 +19,37 @@ Proto::Proto(Serial *ps):pser(ps)
 
 }
 
-void Proto::rx_alive(uint8_t src_NodeId)
+//light[0] msb - light[1] lsb
+//[8bits]        [4 unused-4bits]
+void Proto::fill_light_paylod(uint16_t light,uint8_t *rxPayload)
 {
-	pser->printf("NodeId:%d;is_Alive\r",src_NodeId);
+	rxPayload[0] =   0xFF & (light >> 4);
+	rxPayload[1] = 0x000F & (light);
 }
 
-void Proto::rx_reset(uint8_t src_NodeId)
-{
-	pser->printf("NodeId:%d;was:Reset\r");
-}
-
-void Proto::rx_light(uint8_t src_NodeId,uint8_t *rxPayload)
+void Proto::print_light(uint8_t *rxPayload)
 {
 	unsigned int SensorVal = rxPayload[0];
 	SensorVal <<= 4;//shift to make place for the 4 LSB
 	SensorVal = SensorVal + (0x0F & rxPayload[1]);
-	pser->printf("NodeId:%d;Light:%u\r",src_NodeId,SensorVal);
+	pser->printf("light:%u\r",SensorVal);
 }
 
-void Proto::rx_magnet(uint8_t src_NodeId,uint8_t *rxPayload)
+void Proto::print_magnet(uint8_t *rxPayload)
 {
-	pser->printf("NodeId:%d;Magnet:",src_NodeId);
 	if(rxPayload[0] == 0)
 	{
-		pser->printf("Low\r");
+		pser->printf("magnet:Low\r");
 	}
 	else
 	{
-		pser->printf("High\r");
+		pser->printf("magnet:High\r");
 	}
 }
 
-void Proto::bme280_rx_measures(uint8_t src_NodeId,uint8_t *rxPayload)
+void Proto::print_bme280(uint8_t *rxPayload)
 {
-	pser->printf("NodeId:%d;BME280: 0x",src_NodeId);
+	pser->printf("bme280: 0x");
 	for(int i=0;i<8;i++)
 	{
 		pser->printf("%02x ",rxPayload[i]);

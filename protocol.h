@@ -70,11 +70,10 @@ class Proto
 {
     public:
         Proto(Serial *ps);
-        void rx_alive(uint8_t src_NodeId);
-        void rx_reset(uint8_t src_NodeId);
-        void rx_light(uint8_t src_NodeId,uint8_t *rxPayload);
-        void rx_magnet(uint8_t src_NodeId,uint8_t *rxPayload);
-        void bme280_rx_measures(uint8_t src_NodeId,uint8_t *rxPayload);
+        void fill_light_paylod(uint16_t light,uint8_t *rxPayload);
+        void print_light(uint8_t *rxPayload);
+        void print_magnet(uint8_t *rxPayload);
+        void print_bme280(uint8_t *rxPayload);
     public:
         Serial      *pser;
 };
