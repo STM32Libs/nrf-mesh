@@ -1,6 +1,7 @@
 
 #include "nrf24l01p.h"
 
+#include "utils.h"
 //DigitalOut debug_send(PB_13);
 
 Nrf24l01p::Nrf24l01p(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName sck, PinName mosi, PinName miso):
@@ -20,7 +21,7 @@ Nrf24l01p::Nrf24l01p(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName
 void Nrf24l01p::ce_pin_highEnable()
 {
     ce_pin = 1;
-    wait_us(nrf::delay::Tpece2csn_us);
+    wait_us_cpu(nrf::delay::Tpece2csn_us);
 }
 void Nrf24l01p::ce_pin_lowDisable()
 {
@@ -73,7 +74,7 @@ void Nrf24l01p::command(uint8_t v_cmd)
         ce_pin_highEnable();
     }
 
-    wait_us(nrf::delay::Tpece2csn_us);
+    wait_us_cpu(nrf::delay::Tpece2csn_us);
 
 }
 
@@ -94,7 +95,7 @@ uint8_t Nrf24l01p::writeRegister(uint8_t reg,uint8_t val)
         ce_pin_highEnable();
     }
 
-    wait_us(nrf::delay::Tpece2csn_us);
+    wait_us_cpu(nrf::delay::Tpece2csn_us);
 
     return res;
 }
@@ -111,7 +112,9 @@ uint8_t Nrf24l01p::readRegister(uint8_t reg)
     return res_val;
 }
 
-//TODO this function does not work properly when used with spi_write never returns 0x2e on wait transmit
+//TODO this function does not work properly when used with spi_write() never returns 0x2e on wait transmit
+//check performance if not better to replace with generic readRegister()
+//TODO debug SPI transactions differences between spi. and spi_
 uint8_t Nrf24l01p::readStatus()
 {
     csn_pin_lowSelect();
@@ -158,7 +161,7 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
         ce_pin_highEnable();
     }
 
-    wait_us(nrf::delay::Tpece2csn_us);
+    wait_us_cpu(nrf::delay::Tpece2csn_us);
 
 }
 
@@ -196,7 +199,7 @@ void Nrf24l01p::setMode(nrf::Mode m)
         {
             setbit(nrf::reg::CONFIG,nrf::bit::config::PWR_UP);
             //pr->printf("SetMode : Standby\n");
-            wait_us(nrf::delay::Tpd2stby_us);
+            wait_us_cpu(nrf::delay::Tpd2stby_us);
             mode = nrf::Mode::Standby;
             ce_pin_lowDisable();//otherwise would stay in Rx
         }
@@ -370,7 +373,7 @@ void Nrf24l01p::wait_transmit()
 	{
 		status = readStatus();
 		cycles++;
-        wait_us(nrf::delay::Poll_Tx_10_us);
+        wait_us_cpu(nrf::delay::Poll_Tx_10_us);
 	}while(     ((status & nrf::bit::status::TX_DS) == 0)
                 &
                 (cycles<255)
@@ -392,7 +395,7 @@ void Nrf24l01p::start_transmission(uint8_t *payload, uint8_t size)
     writeBuffer(nrf::cmd::W_TX_PLOAD,payload,size);
 
     ce_pin_highEnable();
-    wait_us(nrf::delay::Tx_Pulse_10_us);
+    wait_us_cpu(nrf::delay::Tx_Pulse_10_us);
     ce_pin_lowDisable();
 }
 

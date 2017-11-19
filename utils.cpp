@@ -46,3 +46,37 @@ uint8_t strbegins (uint8_t * s1, const char * s2)
             return 0;
     return (*s2 == 0)?0:1;
 }
+
+/*
+ y = x :
+   0 ->   1.875 us
+ 100 ->  30.08  us
+1000 -> 315.1   us
+
+y = 3 x - 2 :
+   0 ->   2 us
+ 100 ->  86 us
+1000 -> 847 us
+
+y = 3.5379 x - 2 :
+   0 ->    2.083  us
+ 100 ->  117.6    us
+1000 -> 1122      us
+*/
+void wait_us_cpu(uint32_t delay_us)
+{
+	volatile uint32_t counter = 0;
+	uint32_t wait_count;
+	if(delay_us == 0)
+	{
+		wait_count = 0;
+	}
+	else
+	{
+		wait_count = delay_us*3.5379 - 2;
+	}
+	for(uint32_t i=0;i<wait_count;i++)
+	{
+		counter++;
+	}
+}

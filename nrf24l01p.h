@@ -192,7 +192,7 @@ public:
 
     uint8_t writeRegister(uint8_t reg,uint8_t val);
     uint8_t readRegister(uint8_t reg);
-    uint8_t readStatus();//faster than readRegister(status);
+    uint8_t readStatus();
 
     void setbit(uint8_t reg, uint8_t bit);  //keep other bits unchanged
     void clearbit(uint8_t reg, uint8_t bit);//keep other bits unchanged

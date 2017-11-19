@@ -40,6 +40,7 @@ void nrf_irq()
     //------------- see note c from datasheet on handling RX_DR IRQ on steps 1) 2) 3) ------------------
     //--------------------------------------------------------------------------------------------------
     //decide here which irq to call
+    //handler->nrf.print_status();
     uint8_t status = handler->nrf.readStatus();
     if(status & nrf::bit::status::RX_DR)
     {
@@ -63,6 +64,7 @@ void nrf_irq()
             //handler->pser->printf("RX_RD cleared : irq %d, ce %d\r",handler->nRFIrq.read(), handler->nrf.ce_pin.read());
             rf_message_handler(data);
             //reread the status to check if you need to get another buffer
+            //handler->nrf.print_status();
             status = handler->nrf.readStatus();
             rx_pipe_nb = (status & nrf::bit::status::RX_P_NO)>>1;                   // 3) - read FIFO status, if more data repeat step 1)
         }
@@ -299,6 +301,7 @@ void RfMesh::setAckDelay(uint16_t delay)
     p2p_ack_delay = delay;
 }
 
+//can only be called from main due to wait_ms()
 bool RfMesh::send_check_ack()
 {
     p2p_ack = false;
@@ -313,6 +316,7 @@ bool RfMesh::send_check_ack()
     return p2p_ack;
 }
 
+//can only be called from main due to wait_ms() in send_check_ack()
 uint8_t RfMesh::send_retries()
 {
 	bool success = false;
@@ -341,6 +345,7 @@ void RfMesh::send_ack(uint8_t *data)
 	nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
 }
 
+//can only be called from main due to wait_ms() in send_check_ack()
 uint8_t RfMesh::send_msg(uint8_t* buf)
 {
     uint8_t res = false;
@@ -365,6 +370,7 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
     return res;
 }
 
+//can only be called from main due to wait_ms() in send_check_ack()
 uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
 {
     p2p_message[rf::ind::size]  = 8;
@@ -380,6 +386,7 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
     return send_retries();
 }
 
+//can only be called from main due to wait_ms() in send_check_ack()
 uint8_t RfMesh::send_heat(uint8_t dest,uint8_t val)
 {
     p2p_message[rf::ind::size]      = 6;
