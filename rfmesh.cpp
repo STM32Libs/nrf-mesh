@@ -136,9 +136,10 @@ void rf_bridge_handler(uint8_t *data)
     {
         time_to_live--;
         data[rf::ind::control] = (data[rf::ind::control] & rf::ctr::ttl_clear) + time_to_live;
+        crc::set(data);
+        handler->nrf.transmit_Rx(data,data[rf::ind::size]+2);
     }
-    crc::set(data);
-	handler->nrf.transmit_Rx(data,data[rf::ind::size]+2);
+    //else drop message
 }
 
 void rf_peer2peer_handler(uint8_t *data)
