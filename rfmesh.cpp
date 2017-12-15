@@ -99,6 +99,8 @@ void rf_message_handler(uint8_t *data)
         return;
     }
     //--------------- crc check -------------------
+    //handler->pser->printf("received data:");
+    //print_tab(handler->pser,data,data[rf::ind::size]+2);
     if(!crc::check(data))
     {
         #if (DEBUG_CRC_FAIL == 1)
@@ -109,7 +111,9 @@ void rf_message_handler(uint8_t *data)
                 print_size = 30;
             }
             print_tab(handler->pser,data,print_size);
-            handler->pser->printf("\r\n");
+            handler->pser->printf("should be:");
+            crc::set(data);
+            print_tab(handler->pser,data,print_size);
         #endif
         return;
     }
@@ -350,7 +354,12 @@ void RfMesh::send_ack(uint8_t *data)
     p2p_message[rf::ind::source]    = g_nodeId;
     p2p_message[rf::ind::dest]      = data[rf::ind::source];
     crc::set(p2p_message);
-	nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
+	nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);//BUG must send one more to complete workaround in writeBuffer()
+    #if(DEBUG_ACK == 1)
+    pser->printf("send_ack()\r\n");
+    print_tab(pser,p2p_message,p2p_message[rf::ind::size]+2);
+    pser->printf("\r\n");
+    #endif
 }
 
 //can only be called from main due to wait_ms() in send_check_ack()
