@@ -141,6 +141,10 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
 {
     uint8_t last_ce = ce_pin;
 
+    //TODO fix bug of packet size
+    size++;//when simply sending the size even after waiting last SPI data transmission, the layst byte is still lost
+    //probably wuold need a delay or polling another register before starting the transmission to make sure the last byte is in
+
     ce_pin_lowDisable();
     csn_pin_lowSelect();
 
@@ -156,6 +160,8 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
             while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
             SPI1->DR = *buf++;
         }
+        //wait at the end as well
+        while((SPI1->SR & SPI_SR_TXE) == 0);
     }
     else
     {
@@ -169,6 +175,8 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
             while((SPI2->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
             SPI2->DR = *buf++;
         }
+        //wait at the end as well
+        while((SPI2->SR & SPI_SR_TXE) == 0);
     }
     
     csn_pin_highClear();
