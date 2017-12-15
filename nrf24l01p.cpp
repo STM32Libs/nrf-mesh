@@ -144,15 +144,31 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
     ce_pin_lowDisable();
     csn_pin_lowSelect();
 
-    //spi_write(add);
-    while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
-    SPI1->DR = add;
-
-    for(int i=0;i<size;i++)
+    if(spi_module == 1)
     {
-        //spi_write(*buf++);
+        //spi_write(add);
         while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
-        SPI1->DR = *buf++;
+        SPI1->DR = add;
+
+        for(int i=0;i<size;i++)
+        {
+            //spi_write(*buf++);
+            while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+            SPI1->DR = *buf++;
+        }
+    }
+    else
+    {
+        //spi_write(add);
+        while((SPI2->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+        SPI2->DR = add;
+
+        for(int i=0;i<size;i++)
+        {
+            //spi_write(*buf++);
+            while((SPI2->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+            SPI2->DR = *buf++;
+        }
     }
     
     csn_pin_highClear();
@@ -171,19 +187,39 @@ void Nrf24l01p::readBuffer(uint8_t add,uint8_t *buf,uint8_t size)
 {
     csn_pin_lowSelect();
 
-    //spi_write(add);
-    while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
-    SPI1->DR = add;
-    while((SPI1->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
-    trash = SPI1->DR;
-
-    for(int i=0;i<size;i++)
+    if(spi_module == 1)
     {
-        //(*buf++) = spi_write(nrf::cmd::NOP);
+        //spi_write(add);
         while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
-        SPI1->DR = 0;
+        SPI1->DR = add;
         while((SPI1->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
-        (*buf++) = SPI1->DR;
+        trash = SPI1->DR;
+
+        for(int i=0;i<size;i++)
+        {
+            //(*buf++) = spi_write(nrf::cmd::NOP);
+            while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+            SPI1->DR = 0;
+            while((SPI1->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
+            (*buf++) = SPI1->DR;
+        }
+    }
+    else
+    {
+        //spi_write(add);
+        while((SPI2->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+        SPI2->DR = add;
+        while((SPI2->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
+        trash = SPI2->DR;
+
+        for(int i=0;i<size;i++)
+        {
+            //(*buf++) = spi_write(nrf::cmd::NOP);
+            while((SPI2->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
+            SPI2->DR = 0;
+            while((SPI2->SR & SPI_SR_RXNE) == 0);//wait while Rx buffer empty
+            (*buf++) = SPI2->DR;
+        }
     }
 
     csn_pin_highClear();

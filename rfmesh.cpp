@@ -6,6 +6,7 @@
 #include "utils.h"
 
 //DigitalOut debug_rf(PB_13);
+#define DEBUG_CRC_FAIL 0
 
 #define NRF_NUM (1)
 
@@ -118,13 +119,11 @@ void rf_message_handler(uint8_t *data)
     if((data[rf::ind::control] & 0x80) == rf::ctr::Broadcast)
     {
         //we catched a broadcast, forward it to the user as such
-        //handler->pser->printf("call broadcast\r");
         uint8_t user_size = data[rf::ind::size];
         handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Broadcast)](data,user_size);
     }
     else
     {
-        //handler->pser->printf("call peer2peer\r");
         rf_peer2peer_handler(data);
     }
 }
@@ -157,7 +156,6 @@ void rf_peer2peer_handler(uint8_t *data)
     {
         if((data[rf::ind::control] & 0x20) == rf::ctr::Message)
         {
-            //handler->pser->printf("call Message\r");
             handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Message)](data,data[rf::ind::size]);
             if((data[rf::ind::control] & 0x10) == rf::ctr::Send_Ack )
             {
