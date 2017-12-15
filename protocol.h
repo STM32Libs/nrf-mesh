@@ -57,12 +57,13 @@ namespace rf
         uint8_t const reset         = 0x04;
         uint8_t const alive         = 0x05;
         uint8_t const button        = 0x06;
-        uint8_t const light         = 0x07;//both sensor and order
+        uint8_t const light         = 0x07;//light sensing
         uint8_t const temperature   = 0x08;//is a temperature sensor
         uint8_t const heat          = 0x09;//is temperature heating order
-        uint8_t const bme280         = 0x0A;
+        uint8_t const bme280        = 0x0A;
         uint8_t const rgb           = 0x0B;
         uint8_t const magnet        = 0x0C;
+        uint8_t const dimmer        = 0x0D;//action of changing light intensity
     }
 }
 
