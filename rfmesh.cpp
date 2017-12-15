@@ -102,13 +102,14 @@ void rf_message_handler(uint8_t *data)
     if(!crc::check(data))
     {
         #if (DEBUG_CRC_FAIL == 1)
-            handler->pser->printf("rx crc Fail:");//TODO print tab in util
-            uint8_t print_size = data[rf::ind::size];
+            handler->pser->printf("rx crc Fail:");
+            uint8_t print_size = data[rf::ind::size]+2;
             if(print_size>30)
             {
                 print_size = 30;
             }
             print_tab(handler->pser,data,print_size);
+            handler->pser->printf("\r\n");
         #endif
         return;
     }
@@ -147,6 +148,8 @@ void rf_peer2peer_handler(uint8_t *data)
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
 
+    //handler->pser->printf("p2p\r\n");
+
     if(data[rf::ind::dest] != g_nodeId)
     {
         //handler->pser->printf("not this node id\r");
@@ -164,7 +167,9 @@ void rf_peer2peer_handler(uint8_t *data)
         }
         else//it's an acknowledge
         {
-            //handler->pser->printf("is returned\r");
+            #if(DEBUG_CRC == 1)
+            handler->pser->printf("is returned\r\n");
+            #endif
             isReturned = 1;
         }
     }
@@ -305,6 +310,11 @@ bool RfMesh::send_check_ack()
     p2p_ack = false;
     p2p_expected_Pid = p2p_message[rf::ind::pid];//Pid
     nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
+    #if(DEBUG_CRC == 1)
+    pser->printf("sent:(%u):",p2p_message[0]+2);
+    print_tab(pser,p2p_message,p2p_message[0]+2);
+    pser->printf("\r\n");
+    #endif
     //if we want the receiver to send back an Acknowledge
     if((p2p_message[rf::ind::control] & 0x10) == rf::ctr::Send_Ack)
     {

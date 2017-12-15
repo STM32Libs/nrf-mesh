@@ -156,6 +156,8 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
             while((SPI1->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
             SPI1->DR = *buf++;
         }
+        //wait at the end as well
+        while((SPI1->SR & SPI_SR_TXE) == 0);
     }
     else
     {
@@ -169,6 +171,8 @@ void Nrf24l01p::writeBuffer(uint8_t add,uint8_t *buf,uint8_t size)
             while((SPI2->SR & SPI_SR_TXE) == 0);//wait while Tx buffer not empty
             SPI2->DR = *buf++;
         }
+        //wait at the end as well
+        while((SPI2->SR & SPI_SR_TXE) == 0);
     }
     
     csn_pin_highClear();
