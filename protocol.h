@@ -65,6 +65,19 @@ namespace rf
         uint8_t const magnet        = 0x0C;
         uint8_t const dimmer        = 0x0D;//action of changing light intensity
         uint8_t const light_rgb     = 0x0E;//sensing light in luminance and colors 4x(16-bit / channel)
+        uint8_t const gesture       = 0x0F;//APDS gesture sensor
+    }
+
+    namespace gest
+    {
+        uint8_t const none  = 0x00;
+        uint8_t const left  = 0x01;
+        uint8_t const right = 0x02;
+        uint8_t const up    = 0x03;
+        uint8_t const down  = 0x04;
+        uint8_t const near  = 0x05;
+        uint8_t const far   = 0x06;
+        uint8_t const all   = 0x07;
     }
 }
 

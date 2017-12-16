@@ -447,15 +447,15 @@ void RfMesh::broadcast(uint8_t pid)
     nrf.transmit_Rx(brc_message,brc_message[rf::ind::size]+2);
 }
 
-void RfMesh::broadcast_heat(uint8_t heat)
+void RfMesh::broadcast_byte(uint8_t v_pid,uint8_t val)
 {
-    brc_message[rf::ind::size]      = 5;
     brc_message[rf::ind::control]   = rf::ctr::Broadcast;
-    brc_message[rf::ind::pid]       = rf::pid::heat;
+    brc_message[rf::ind::pid]       = v_pid;
     brc_message[rf::ind::source]    = g_nodeId;
-    brc_message[4] = heat;
+    brc_message[4] = val;
+    brc_message[rf::ind::size]      = 5;
     crc::set(brc_message);
     //print_tab(pser,brc_message,5);
-    nrf.transmit_Rx(brc_message,brc_message[rf::ind::size]+2);
+    nrf.transmit_Rx(brc_message,7);// 5 + 2 for crc
 }
 
