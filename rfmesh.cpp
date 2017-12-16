@@ -388,16 +388,36 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
 }
 
 //can only be called from main due to wait_ms() in send_check_ack()
+uint8_t RfMesh::broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl)
+{
+    p2p_message[rf::ind::control]   = rf::ctr::Broadcast | ttl;//ttl = 1 ; bridge high power max one jump
+    p2p_message[rf::ind::pid]   =  rf::pid::light_rgb;
+    p2p_message[rf::ind::source]= g_nodeId;
+    p2p_message[4]  = lrgb[0] >> 8;      //MSB first
+    p2p_message[5]  = lrgb[0] & 0xFF;    //LSB
+    p2p_message[6]  = lrgb[1] >> 8;      //MSB first
+    p2p_message[7]  = lrgb[1] & 0xFF;    //LSB
+    p2p_message[8]  = lrgb[2] >> 8;      //MSB first
+    p2p_message[9] = lrgb[2] & 0xFF;    //LSB
+    p2p_message[10] = lrgb[3] >> 8;      //MSB first
+    p2p_message[11] = lrgb[3] & 0xFF;    //LSB
+    p2p_message[rf::ind::size]  = 12;
+    crc::set(p2p_message);
+    //print_tab(pser,p2p_message,14);
+    return send_retries();
+}
+
+//can only be called from main due to wait_ms() in send_check_ack()
 uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
 {
-    p2p_message[rf::ind::size]  = 8;
-    p2p_message[rf::ind::pid]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | rf::ctr::Send_Ack;
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | rf::ctr::Send_Ack;
     p2p_message[rf::ind::pid]   =  rf::pid::rgb;
     p2p_message[rf::ind::source]= g_nodeId;
     p2p_message[rf::ind::dest]  = dest;
     p2p_message[5] = r;
     p2p_message[6] = g;
     p2p_message[7] = b;
+    p2p_message[rf::ind::size]  = 8;
     crc::set(p2p_message);
     //print_tab(pser,p2p_message,9);
     return send_retries();

@@ -36,6 +36,7 @@ class RfMesh
     public:
         void broadcast(uint8_t pid);
         void broadcast_heat(uint8_t heat);
+        uint8_t broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl = 0);
         uint8_t send_msg(uint8_t* buf);
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b);
         uint8_t send_heat(uint8_t dest,uint8_t val);
