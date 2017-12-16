@@ -19,6 +19,23 @@ Proto::Proto(Serial *ps):pser(ps)
 
 }
 
+//TODO can bring the fill here as well
+
+void Proto::print_light_rgb(uint8_t *rxPayload)
+{
+	uint16_t light,R,G,B;
+	light = rxPayload[0];
+	light = (light<<8) + rxPayload[1];
+	R = rxPayload[0];
+	R = (R<<8) + rxPayload[1];
+	G = rxPayload[2];
+	G = (G<<8) + rxPayload[3];
+	B = rxPayload[4];
+	B = (B<<8) + rxPayload[5];
+	pser->printf("light:%u;red:%u,green:%u;blue:%u\r\n",light,R,G,B);
+}
+
+
 //light[0] msb - light[1] lsb
 //[8bits]        [4 unused-4bits]
 void Proto::fill_light_paylod(uint16_t light,uint8_t *rxPayload)

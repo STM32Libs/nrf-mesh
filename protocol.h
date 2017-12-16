@@ -72,6 +72,7 @@ class Proto
 {
     public:
         Proto(Serial *ps);
+        void print_light_rgb(uint8_t *rxPayload);
         void fill_light_paylod(uint16_t light,uint8_t *rxPayload);
         void print_light(uint8_t *rxPayload);
         void print_magnet(uint8_t *rxPayload);
