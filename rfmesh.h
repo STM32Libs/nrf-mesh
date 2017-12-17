@@ -39,7 +39,7 @@ class RfMesh
         uint8_t broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl = 0);
         uint8_t send_msg(uint8_t* buf);
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b);
-        uint8_t send_heat(uint8_t dest,uint8_t val);
+        uint8_t send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack=true);
         void send_ack(uint8_t *data);
     private:
         bool send_check_ack();

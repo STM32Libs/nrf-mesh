@@ -66,6 +66,7 @@ namespace rf
         uint8_t const dimmer        = 0x0D;//action of changing light intensity
         uint8_t const light_rgb     = 0x0E;//sensing light in luminance and colors 4x(16-bit / channel)
         uint8_t const gesture       = 0x0F;//APDS gesture sensor
+        uint8_t const proximity     = 0x10;//APDS proximity sensor
     }
 
     namespace gest

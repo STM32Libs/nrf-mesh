@@ -424,11 +424,12 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b)
 }
 
 //can only be called from main due to wait_ms() in send_check_ack()
-uint8_t RfMesh::send_heat(uint8_t dest,uint8_t val)
+uint8_t RfMesh::send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack)
 {
     p2p_message[rf::ind::size]      = 6;
-    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | rf::ctr::Send_Ack;
-    p2p_message[rf::ind::pid]       = rf::pid::heat;
+    uint8_t ack_mask = ask_for_ack?rf::ctr::Send_Ack:0;
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | ack_mask;
+    p2p_message[rf::ind::pid]       = pid;
     p2p_message[rf::ind::source]    = g_nodeId;
     p2p_message[rf::ind::dest]      = dest;
     p2p_message[5] = val;
