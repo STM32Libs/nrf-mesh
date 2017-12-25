@@ -34,13 +34,13 @@ class RfMesh
         void setBridgeMode();
         //---------------------------- Communication ------------------------
     public:
-        void broadcast(uint8_t pid);
-        void broadcast_byte(uint8_t v_pid,uint8_t val);
-        uint8_t broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl = 0);
+        void broadcast(uint8_t pid,uint8_t ttl=1);
+        void broadcast_byte(uint8_t v_pid,uint8_t val,uint8_t ttl=1);
+        uint8_t broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl=1);
         uint8_t send_msg(uint8_t* buf);
-        uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for_ack=true);
-        uint8_t send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack=true);
-        void send_ack(uint8_t *data);
+        uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for_ack=true,uint8_t ttl=1);
+        uint8_t send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack=true,uint8_t ttl=1);
+        void send_ack(uint8_t *data,uint8_t ttl=1);
     private:
         bool send_check_ack();
         uint8_t send_retries();

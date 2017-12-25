@@ -345,7 +345,7 @@ uint8_t RfMesh::send_retries()
 	return retries;//nb_retries in case of success otherwise 0
 }
 
-void RfMesh::send_ack(uint8_t *data)
+void RfMesh::send_ack(uint8_t *data,uint8_t ttl)
 {
     //Ack           : Size Pid  SrcId DstId CRC
     p2p_message[rf::ind::size]      = 5;
@@ -408,10 +408,10 @@ uint8_t RfMesh::broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl)
 }
 
 //can only be called from main due to wait_ms() in send_check_ack()
-uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for_ack)
+uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for_ack,uint8_t ttl)
 {
     uint8_t ack_mask = ask_for_ack?rf::ctr::Send_Ack:0;
-    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | ack_mask;
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | ack_mask | ttl;
     p2p_message[rf::ind::pid]   =  rf::pid::rgb;
     p2p_message[rf::ind::source]= g_nodeId;
     p2p_message[rf::ind::dest]  = dest;
@@ -425,10 +425,10 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for
 }
 
 //can only be called from main due to wait_ms() in send_check_ack()
-uint8_t RfMesh::send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack)
+uint8_t RfMesh::send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack,uint8_t ttl)
 {
     uint8_t ack_mask = ask_for_ack?rf::ctr::Send_Ack:0;
-    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | ack_mask;
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | ack_mask | ttl;
     p2p_message[rf::ind::pid]       = pid;
     p2p_message[rf::ind::source]    = g_nodeId;
     p2p_message[rf::ind::dest]      = dest;
@@ -439,19 +439,19 @@ uint8_t RfMesh::send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack)
     return send_retries();
 }
 
-void RfMesh::broadcast(uint8_t pid)
+void RfMesh::broadcast(uint8_t pid,uint8_t ttl)
 {
     brc_message[rf::ind::size]      = 4;
-    brc_message[rf::ind::control]   = rf::ctr::Broadcast;
+    brc_message[rf::ind::control]   = rf::ctr::Broadcast | ttl;
     brc_message[rf::ind::pid]       = pid;
     brc_message[rf::ind::source]    = g_nodeId;
     crc::set(brc_message);
     nrf.transmit_Rx(brc_message,brc_message[rf::ind::size]+2);
 }
 
-void RfMesh::broadcast_byte(uint8_t v_pid,uint8_t val)
+void RfMesh::broadcast_byte(uint8_t v_pid,uint8_t val,uint8_t ttl)
 {
-    brc_message[rf::ind::control]   = rf::ctr::Broadcast;
+    brc_message[rf::ind::control]   = rf::ctr::Broadcast | ttl;
     brc_message[rf::ind::pid]       = v_pid;
     brc_message[rf::ind::source]    = g_nodeId;
     brc_message[4] = val;
