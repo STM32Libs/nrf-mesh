@@ -6,7 +6,7 @@
 #include "utils.h"
 
 //DigitalOut debug_rf(PB_13);
-#define DEBUG_CRC_FAIL 0
+#define DEBUG_CRC_FAIL 1
 
 #define NRF_NUM (1)
 
@@ -133,6 +133,9 @@ void rf_message_handler(uint8_t *data)
     }
 }
 
+uint8_t brdige_buffer[32];
+uint8_t brdige_size = 0;
+bool bridge_must_send = false;
 //at this point, the size and crc are already verified
 void rf_bridge_handler(uint8_t *data)
 {
@@ -141,11 +144,34 @@ void rf_bridge_handler(uint8_t *data)
     if(time_to_live != 0)
     {
         time_to_live--;
+        handler->pser->printf("repeating ttl is now: %u\r\n",time_to_live);
+        print_tab(handler->pser,data,data[rf::ind::size]);
         data[rf::ind::control] = (data[rf::ind::control] & rf::ctr::ttl_clear) + time_to_live;
         crc::set(data);
-        handler->nrf.transmit_Rx(data,data[rf::ind::size]+2);
+        //handler->nrf.transmit_Rx(data,data[rf::ind::size]+2);
+        brdige_size = data[rf::ind::size]+2;
+        for(int i=0;i<brdige_size;i++)
+        {
+            brdige_buffer[i] = data[i];
+        }
+        bridge_must_send = true;
     }
-    //else drop message
+    else// drop message
+    {
+        handler->pser->printf("message dropped as ttl == 0\r\n");
+        print_tab(handler->pser,data,data[rf::ind::size]);
+    }
+}
+void rf_bridge_delegate()
+{
+    RfMesh *handler = (RfMesh*)nrf_handlers[0];
+    if(bridge_must_send)
+    {
+        handler->pser->printf("sending from delegate\r\n");
+        print_tab(handler->pser,brdige_buffer,brdige_size);
+        handler->nrf.transmit_Rx(brdige_buffer,brdige_size);
+        bridge_must_send = false;
+    }
 }
 
 void rf_peer2peer_handler(uint8_t *data)

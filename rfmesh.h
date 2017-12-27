@@ -10,6 +10,8 @@ namespace mesh
 
 }
 
+void rf_bridge_delegate();
+
 class RfMesh
 {
     public:
@@ -32,6 +34,7 @@ class RfMesh
         void setRetries(uint8_t nb_retries);
         void setAckDelay(uint16_t delay);
         void setBridgeMode();
+
         //---------------------------- Communication ------------------------
     public:
         void broadcast(uint8_t pid,uint8_t ttl=1);
