@@ -6,7 +6,7 @@
 #include "utils.h"
 
 //DigitalOut debug_rf(PB_13);
-#define DEBUG_CRC_FAIL 1
+#define DEBUG_CRC_FAIL 0
 
 #define NRF_NUM (1)
 
@@ -111,9 +111,9 @@ void rf_message_handler(uint8_t *data)
                 print_size = 30;
             }
             print_tab(handler->pser,data,print_size);
-            handler->pser->printf("should be:");
-            crc::set(data);
-            print_tab(handler->pser,data,print_size);
+            //handler->pser->printf("should be:");
+            //crc::set(data);
+            //print_tab(handler->pser,data,print_size);
         #endif
         return;
     }

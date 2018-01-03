@@ -51,6 +51,7 @@ namespace rf
 
     namespace pid
     {
+        uint8_t const exec_cmd      = 0xEC;
         uint8_t const ping          = 0x01;
         uint8_t const request_pid   = 0x02;
         uint8_t const chan_switch   = 0x03;
@@ -67,6 +68,22 @@ namespace rf
         uint8_t const light_rgb     = 0x0E;//sensing light in luminance and colors 4x(16-bit / channel)
         uint8_t const gesture       = 0x0F;//APDS gesture sensor
         uint8_t const proximity     = 0x10;//APDS proximity sensor
+    }
+
+    namespace exec_cmd
+    {
+        //RF
+        uint8_t const nop      = 0x00;
+        uint8_t const status   = 0x01;
+        uint8_t const standby  = 0x02;
+        uint8_t const listen   = 0x03;
+        uint8_t const channel  = 0x04;
+        uint8_t const txadd    = 0x05;
+        uint8_t const rxadd    = 0x06;
+        uint8_t const readreg  = 0x07;
+        uint8_t const writereg = 0x08;
+        //Mesh
+        uint8_t const send     = 0x20;
     }
 
     namespace gest

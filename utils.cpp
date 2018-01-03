@@ -8,7 +8,7 @@ void print_tab(Serial *ps,uint8_t *data,uint8_t size)
     {
         ps->printf("%02X ",data[i]);
     }
-    ps->printf("\r");
+    ps->printf("\r\n");
 }
 
 uint8_t get_hex_char(uint8_t c)
