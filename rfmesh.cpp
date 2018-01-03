@@ -400,7 +400,9 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
     }
     crc::set(p2p_message);
     
-    if(p2p_message[rf::ind::pid] & rf::ctr::Broadcast)
+    if( (p2p_message[rf::ind::pid] & rf::ctr::Broadcast) ||
+        ((p2p_message[rf::ind::pid] & 0x04) == rf::ctr::ReqResp )
+    )
     {
         nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
         res = true;
