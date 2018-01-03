@@ -117,9 +117,10 @@ void rf_message_handler(uint8_t *data)
         #endif
         return;
     }
+    
     if(handler->isBridge)
     {
-        rf_bridge_handler(data);
+        rf_bridge_handler(data);//will check if the message is directed to this node
     }
     if((data[rf::ind::control] & 0x80) == rf::ctr::Broadcast)
     {
@@ -133,12 +134,19 @@ void rf_message_handler(uint8_t *data)
     }
 }
 
-uint8_t brdige_buffer[32];
-uint8_t brdige_size = 0;
+uint8_t bridge_buffer[32];
 bool bridge_must_send = false;
 //at this point, the size and crc are already verified
 void rf_bridge_handler(uint8_t *data)
 {
+    if((data[rf::ind::control] & 0x80) != rf::ctr::Broadcast)
+        if(data[rf::ind::dest] == g_nodeId)
+        {
+            //then no need to repeat this message directed to this node id
+            return;
+        }
+
+
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     uint8_t time_to_live = data[rf::ind::control] & rf::ctr::ttl_mask;
     if(time_to_live != 0)
@@ -149,10 +157,10 @@ void rf_bridge_handler(uint8_t *data)
         data[rf::ind::control] = (data[rf::ind::control] & rf::ctr::ttl_clear) + time_to_live;
         crc::set(data);
         //handler->nrf.transmit_Rx(data,data[rf::ind::size]+2);
-        brdige_size = data[rf::ind::size]+2;
+        uint8_t brdige_size = data[rf::ind::size]+2;
         for(int i=0;i<brdige_size;i++)
         {
-            brdige_buffer[i] = data[i];
+            bridge_buffer[i] = data[i];
         }
         bridge_must_send = true;
     }
@@ -168,10 +176,22 @@ void rf_bridge_delegate()
     if(bridge_must_send)
     {
         handler->pser->printf("sending from delegate\r\n");
-        print_tab(handler->pser,brdige_buffer,brdige_size);
-        handler->nrf.transmit_Rx(brdige_buffer,brdige_size);
+        uint8_t brdige_size = bridge_buffer[rf::ind::size]+2;
+        print_tab(handler->pser,bridge_buffer,brdige_size);
+        handler->nrf.transmit_Rx(bridge_buffer,brdige_size);
         bridge_must_send = false;
     }
+}
+
+void send_ping_response(uint8_t *data)
+{
+    bridge_buffer[rf::ind::control] = rf::ctr::Peer2Peer | rf::ctr::ReqResp | rf::ctr::Response + 1;//ttl = 1
+    bridge_buffer[rf::ind::pid] = rf::pid::ping;
+    bridge_buffer[rf::ind::source] = data[rf::ind::dest];
+    bridge_buffer[rf::ind::dest] = data[rf::ind::source];
+    bridge_buffer[rf::ind::size] = 5;
+    crc::set(bridge_buffer);
+    bridge_must_send = true;
 }
 
 void rf_peer2peer_handler(uint8_t *data)
@@ -207,8 +227,15 @@ void rf_peer2peer_handler(uint8_t *data)
     {
         if((data[rf::ind::control] & 0x20) == rf::ctr::Request)
         {
-            //handler->pser->printf("call request\r");
-            handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[rf::ind::size]);
+            if(data[rf::ind::pid] == rf::pid::ping)
+            {
+                send_ping_response(data);
+            }
+            else
+            {
+                //handler->pser->printf("call request\r");
+                handler->_callbacks[static_cast<int>(RfMesh::CallbackType::Request)](data,data[rf::ind::size]);
+            }
         }
         else
         {
