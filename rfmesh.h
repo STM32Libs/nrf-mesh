@@ -32,6 +32,7 @@ class RfMesh
         void attach(Callback<void(uint8_t *data,uint8_t size)> func,CallbackType type);
         void setNodeId(uint8_t nid);
         void setRetries(uint8_t nb_retries);
+        uint8_t getRetries();
         void setAckDelay(uint16_t delay);
         void setBridgeMode();
 

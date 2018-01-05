@@ -318,7 +318,7 @@ void Nrf24l01p::setDataRate(nrf::datarate dr)
     writeRegister(nrf::reg::RF_SETUP,rf_setup_reg);
 }
 
-//2400 + ch (MHz)
+//2400 + ch (MHz) [2400->2525] (0->125)
 void Nrf24l01p::selectChannel(uint8_t chan)
 {
     writeRegister(nrf::reg::RF_CH,chan);

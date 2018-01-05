@@ -171,7 +171,7 @@ public:
     void setMode(nrf::Mode m);
     //--------------------- Level 2 - Config ----------------------------
     void setDataRate(nrf::datarate dr);
-    void selectChannel(uint8_t chan);
+    void selectChannel(uint8_t chan);//2400 + ch (MHz) [2400->2525] (0->125)
     uint8_t getChannel();            
     void setTxAddress();                //TODO
     void setRxAddress();                //TODO

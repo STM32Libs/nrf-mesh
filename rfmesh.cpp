@@ -354,7 +354,11 @@ void RfMesh::setNodeId(uint8_t nid)
 void RfMesh::setRetries(uint8_t nb_retries)
 {
     p2p_nb_retries = nb_retries;
-    pser->printf("p2p_nb_retries:%u\n",p2p_nb_retries);
+}
+
+uint8_t RfMesh::getRetries()
+{
+    return p2p_nb_retries;
 }
 
 void RfMesh::setAckDelay(uint16_t delay)
@@ -428,8 +432,8 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
     }
     crc::set(p2p_message);
     
-    if( (p2p_message[rf::ind::pid] & rf::ctr::Broadcast) ||
-        ((p2p_message[rf::ind::pid] & 0x04) == rf::ctr::ReqResp )
+    if( (p2p_message[rf::ind::control] & rf::ctr::Broadcast) ||
+        ((p2p_message[rf::ind::control] & 0x40) == rf::ctr::ReqResp )
     )
     {
         nrf.transmit_Rx(p2p_message,p2p_message[rf::ind::size]+2);
