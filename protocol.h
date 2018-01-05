@@ -52,6 +52,7 @@ namespace rf
     namespace pid
     {
         uint8_t const exec_cmd      = 0xEC;
+        uint8_t const test          = 0xE5;
         uint8_t const ping          = 0x01;
         uint8_t const request_pid   = 0x02;
         uint8_t const chan_switch   = 0x03;
@@ -84,6 +85,19 @@ namespace rf
         uint8_t const writereg = 0x08;
         //Mesh
         uint8_t const send     = 0x20;
+        //Functions
+        uint8_t const set_rx        = 0x30;
+        uint8_t const test_rf       = 0x31;
+        uint8_t const set_retries   = 0x32;
+        uint8_t const set_ack_delay = 0x33;
+    }
+    
+    namespace set_rx
+    {
+        uint8_t const sniff = 0x00;
+        uint8_t const bcast = 0x01;
+        uint8_t const msg   = 0x02;
+        uint8_t const resp  = 0x03;
     }
 
     namespace gest

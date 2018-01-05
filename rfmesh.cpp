@@ -185,7 +185,7 @@ void rf_bridge_delegate()
 
 void send_ping_response(uint8_t *data)
 {
-    bridge_buffer[rf::ind::control] = rf::ctr::Peer2Peer | rf::ctr::ReqResp | rf::ctr::Response + 1;//ttl = 1
+    bridge_buffer[rf::ind::control] = (rf::ctr::Peer2Peer | rf::ctr::ReqResp | rf::ctr::Response) + 1;//ttl = 1
     bridge_buffer[rf::ind::pid] = rf::pid::ping;
     bridge_buffer[rf::ind::source] = data[rf::ind::dest];
     bridge_buffer[rf::ind::dest] = data[rf::ind::source];
@@ -343,7 +343,7 @@ void RfMesh::print_nrf()
 {
     nrf.dump_regs();
     nrf.print_info();
-    pser->printf("irq pin :%d  ; ce pin  :%d\r",nRFIrq.read(),nrf.ce_pin.read());
+    pser->printf("irq pin :%d  ; ce pin  :%d\n",nRFIrq.read(),nrf.ce_pin.read());
 }
 
 void RfMesh::setNodeId(uint8_t nid)
@@ -354,6 +354,7 @@ void RfMesh::setNodeId(uint8_t nid)
 void RfMesh::setRetries(uint8_t nb_retries)
 {
     p2p_nb_retries = nb_retries;
+    pser->printf("p2p_nb_retries:%u\n",p2p_nb_retries);
 }
 
 void RfMesh::setAckDelay(uint16_t delay)
@@ -377,7 +378,7 @@ bool RfMesh::send_check_ack()
     {
         wait_ms(p2p_ack_delay);// >>> Timeout important, might depend on Nb briges, and on the ReqResp or just MsgAck
     }
-    //pser->printf("p2p_ack :%d\r",p2p_ack);
+    //pser->printf("p2p_ack:%d\n",p2p_ack);
     return p2p_ack;
 }
 
@@ -489,6 +490,30 @@ uint8_t RfMesh::send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack,
     p2p_message[rf::ind::dest]      = dest;
     p2p_message[5] = val;
     p2p_message[rf::ind::size]      = 6;
+    crc::set(p2p_message);
+    //print_tab(pser,p2p_message,9);
+    return send_retries();
+}
+
+uint8_t RfMesh::send_pid(uint8_t pid,uint8_t dest,uint8_t ttl)
+{
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | rf::ctr::Send_Ack | ttl;
+    p2p_message[rf::ind::pid]       = pid;
+    p2p_message[rf::ind::source]    = g_nodeId;
+    p2p_message[rf::ind::dest]      = dest;
+    p2p_message[rf::ind::size]      = 5;
+    crc::set(p2p_message);
+    //print_tab(pser,p2p_message,5);
+    return send_retries();
+}
+
+uint8_t RfMesh::send_request(uint8_t pid,uint8_t dest,uint8_t ttl)
+{
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::ReqResp | rf::ctr::Request | ttl;
+    p2p_message[rf::ind::pid]       = pid;
+    p2p_message[rf::ind::source]    = g_nodeId;
+    p2p_message[rf::ind::dest]      = dest;
+    p2p_message[rf::ind::size]      = 5;
     crc::set(p2p_message);
     //print_tab(pser,p2p_message,9);
     return send_retries();

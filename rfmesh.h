@@ -44,6 +44,8 @@ class RfMesh
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for_ack=true,uint8_t ttl=1);
         uint8_t send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack=true,uint8_t ttl=1);
         void send_ack(uint8_t *data,uint8_t ttl=1);
+        uint8_t send_request(uint8_t pid,uint8_t dest,uint8_t ttl=1);
+        uint8_t send_pid(uint8_t pid,uint8_t dest,uint8_t ttl=1);
     private:
         bool send_check_ack();
         uint8_t send_retries();
