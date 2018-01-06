@@ -55,7 +55,7 @@ namespace rf
         uint8_t const test          = 0xE5;
         uint8_t const ping          = 0x01;
         uint8_t const request_pid   = 0x02;
-        uint8_t const chan_switch   = 0x03;
+        //uint8_t const chan_switch   = 0x03;//deprecated use exec_cmd
         uint8_t const reset         = 0x04;
         uint8_t const alive         = 0x05;
         uint8_t const button        = 0x06;
@@ -78,11 +78,13 @@ namespace rf
         uint8_t const status   = 0x01;
         uint8_t const standby  = 0x02;
         uint8_t const listen   = 0x03;
-        uint8_t const channel  = 0x04;
+        //uint8_t const channel   = 0x04;//deprecated
         uint8_t const txadd    = 0x05;
         uint8_t const rxadd    = 0x06;
         uint8_t const readreg  = 0x07;
         uint8_t const writereg = 0x08;
+        uint8_t const set_channel  = 0x09;
+        uint8_t const get_channel  = 0x0A;
         //Mesh
         uint8_t const send     = 0x20;
         //Functions
@@ -90,6 +92,9 @@ namespace rf
         uint8_t const test_rf       = 0x31;
         uint8_t const set_retries   = 0x32;
         uint8_t const set_ack_delay = 0x33;
+        //test_rf_resp is not using req resp, because the both request and response
+        // needs to be acknowledged so considered as messages
+        uint8_t const test_rf_resp  = 0x34;
     }
     
     namespace set_rx

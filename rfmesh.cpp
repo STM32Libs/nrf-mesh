@@ -152,8 +152,8 @@ void rf_bridge_handler(uint8_t *data)
     if(time_to_live != 0)
     {
         time_to_live--;
-        handler->pser->printf("repeating ttl is now: %u\r\n",time_to_live);
-        print_tab(handler->pser,data,data[rf::ind::size]);
+        //handler->pser->printf("repeating ttl is now: %u\r\n",time_to_live);
+        //print_tab(handler->pser,data,data[rf::ind::size]);
         data[rf::ind::control] = (data[rf::ind::control] & rf::ctr::ttl_clear) + time_to_live;
         crc::set(data);
         //handler->nrf.transmit_Rx(data,data[rf::ind::size]+2);
@@ -166,8 +166,8 @@ void rf_bridge_handler(uint8_t *data)
     }
     else// drop message
     {
-        handler->pser->printf("message dropped as ttl == 0\r\n");
-        print_tab(handler->pser,data,data[rf::ind::size]);
+        //handler->pser->printf("message dropped as ttl == 0\r\n");
+        //print_tab(handler->pser,data,data[rf::ind::size]);
     }
 }
 void rf_bridge_delegate()
@@ -183,7 +183,7 @@ void rf_bridge_delegate()
     }
 }
 
-void send_ping_response(uint8_t *data)
+/*void send_ping_response(uint8_t *data)
 {
     bridge_buffer[rf::ind::control] = (rf::ctr::Peer2Peer | rf::ctr::ReqResp | rf::ctr::Response) + 1;//ttl = 1
     bridge_buffer[rf::ind::pid] = rf::pid::ping;
@@ -192,7 +192,7 @@ void send_ping_response(uint8_t *data)
     bridge_buffer[rf::ind::size] = 5;
     crc::set(bridge_buffer);
     bridge_must_send = true;
-}
+}*/
 
 void rf_peer2peer_handler(uint8_t *data)
 {
@@ -229,7 +229,7 @@ void rf_peer2peer_handler(uint8_t *data)
         {
             if(data[rf::ind::pid] == rf::pid::ping)
             {
-                send_ping_response(data);
+                //send_ping_response(data);
             }
             else
             {
@@ -485,6 +485,21 @@ uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for
 }
 
 //can only be called from main due to wait_ms() in send_check_ack()
+uint8_t RfMesh::send_cmd_byte(uint8_t dest,uint8_t cmd_id,uint8_t param)
+{
+    p2p_message[rf::ind::control]   = rf::ctr::Peer2Peer | rf::ctr::Msg_Ack | rf::ctr::Message | rf::ctr::Send_Ack | 1;
+    p2p_message[rf::ind::pid]       = rf::pid::exec_cmd;
+    p2p_message[rf::ind::source]    = g_nodeId;
+    p2p_message[rf::ind::dest]      = dest;
+    p2p_message[5] = cmd_id;
+    p2p_message[6] = param;
+    p2p_message[rf::ind::size]      = 7;
+    crc::set(p2p_message);
+    //print_tab(pser,p2p_message,9);
+    return send_retries();
+}
+
+//can only be called from main due to wait_ms() in send_check_ack()
 uint8_t RfMesh::send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack,uint8_t ttl)
 {
     uint8_t ack_mask = ask_for_ack?rf::ctr::Send_Ack:0;
@@ -545,3 +560,47 @@ void RfMesh::broadcast_byte(uint8_t v_pid,uint8_t val,uint8_t ttl)
     nrf.transmit_Rx(brc_message,7);// 5 + 2 for crc
 }
 
+uint8_t RfMesh::test_rf(uint8_t target,uint8_t channel,uint8_t nb_ping)
+{
+    uint8_t nb_success = 0;
+    //------------------------ Switch to Test Params ------------------------
+    uint8_t bkp_nbret = getRetries();
+    uint8_t bkp_chan = nrf.getChannel();
+    if(bkp_chan != channel)
+    {
+        //pser->printf("switch_from:%u;to:%u\n",bkp_chan,channel);
+        uint8_t is_success = send_cmd_byte(target,rf::exec_cmd::set_channel,channel);
+        if(is_success == 0)
+        {
+            pser->printf("switch:fail;target:%u;channel:%u\n",target,channel);
+            return 0;
+        }
+        nrf.selectChannel(channel);
+    }
+    else
+    {
+        //pser->printf("switch_chan:not_required;chan:%u\n",channel);
+    }
+    setRetries(1);
+    //RF commands handled from main loop that has a loop_delay
+    wait_ms(20);
+    //------------------------ RF Test ------------------------
+    for(uint8_t i=0;i<nb_ping;i++)
+    {
+        nb_success += send_pid(rf::pid::ping,target,0);
+    }
+    //------------------------ Restore Params ------------------------
+	setRetries(bkp_nbret);
+    if(bkp_chan != channel)
+    {
+        uint8_t is_success = send_cmd_byte(target,rf::exec_cmd::set_channel,bkp_chan);
+        if(is_success == 0)
+        {
+            pser->printf("switch_back:fail;target:%u;channel:%u\n",target,bkp_chan);
+            nrf.selectChannel(bkp_chan);//set back out own channel anyway
+            pser->printf("stay_at_chan:%u\n",nrf.getChannel());
+            return nb_success;
+        }
+    }
+    return nb_success;
+}

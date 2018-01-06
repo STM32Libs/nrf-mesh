@@ -44,9 +44,13 @@ class RfMesh
         uint8_t send_msg(uint8_t* buf);
         uint8_t send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for_ack=true,uint8_t ttl=1);
         uint8_t send_byte(uint8_t pid,uint8_t dest,uint8_t val,bool ask_for_ack=true,uint8_t ttl=1);
+        uint8_t send_cmd_byte(uint8_t dest,uint8_t cmd_id,uint8_t param);
         void send_ack(uint8_t *data,uint8_t ttl=1);
         uint8_t send_request(uint8_t pid,uint8_t dest,uint8_t ttl=1);
         uint8_t send_pid(uint8_t pid,uint8_t dest,uint8_t ttl=1);
+        //---------------------------- RF signal Test ------------------------
+        //test_rf to be called from main() context
+        uint8_t test_rf(uint8_t target,uint8_t channel,uint8_t nb_ping=100);
     private:
         bool send_check_ack();
         uint8_t send_retries();
