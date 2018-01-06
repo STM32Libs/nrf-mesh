@@ -69,6 +69,10 @@ namespace rf
         uint8_t const light_rgb     = 0x0E;//sensing light in luminance and colors 4x(16-bit / channel)
         uint8_t const gesture       = 0x0F;//APDS gesture sensor
         uint8_t const proximity     = 0x10;//APDS proximity sensor
+
+        //test_rf_resp is not using req resp, because the both request and response
+        // needs to be acknowledged so considered as messages
+        uint8_t const test_rf_resp  = 0x30;
     }
 
     namespace exec_cmd
@@ -92,9 +96,6 @@ namespace rf
         uint8_t const test_rf       = 0x31;
         uint8_t const set_retries   = 0x32;
         uint8_t const set_ack_delay = 0x33;
-        //test_rf_resp is not using req resp, because the both request and response
-        // needs to be acknowledged so considered as messages
-        uint8_t const test_rf_resp  = 0x34;
     }
     
     namespace set_rx
