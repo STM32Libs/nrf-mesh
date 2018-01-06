@@ -597,10 +597,9 @@ uint8_t RfMesh::test_rf(uint8_t target,uint8_t channel,uint8_t nb_ping)
         if(is_success == 0)
         {
             pser->printf("switch_back:fail;target:%u;channel:%u\n",target,bkp_chan);
-            nrf.selectChannel(bkp_chan);//set back out own channel anyway
-            pser->printf("stay_at_chan:%u\n",nrf.getChannel());
-            return nb_success;
         }
+        nrf.selectChannel(bkp_chan);//set back out own channel anyway
+        //pser->printf("back_to_chan:%u\n",nrf.getChannel());
     }
     return nb_success;
 }
