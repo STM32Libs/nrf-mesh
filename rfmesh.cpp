@@ -170,14 +170,15 @@ void rf_bridge_handler(uint8_t *data)
         //print_tab(handler->pser,data,data[rf::ind::size]);
     }
 }
+
 void rf_bridge_delegate()
 {
     RfMesh *handler = (RfMesh*)nrf_handlers[0];
     if(bridge_must_send)
     {
-        handler->pser->printf("sending from delegate\r\n");
+        //handler->pser->printf("sending from delegate\r\n");
         uint8_t brdige_size = bridge_buffer[rf::ind::size]+2;
-        print_tab(handler->pser,bridge_buffer,brdige_size);
+        //print_tab(handler->pser,bridge_buffer,brdige_size);
         handler->nrf.transmit_Rx(bridge_buffer,brdige_size);
         bridge_must_send = false;
     }
