@@ -323,7 +323,7 @@ void RfMesh::init(uint8_t chan)
     nrf.clearbit(nrf::reg::CONFIG,nrf::bit::config::MASK_RX_DR);
 
     //pser->printf("Start listening\r\n");
-    nrf.setMode(nrf::Mode::Rx);
+    //nrf.setMode(nrf::Mode::Rx);
 
     isBridge = false;
     

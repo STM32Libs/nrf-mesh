@@ -287,6 +287,36 @@ void Nrf24l01p::setMode(nrf::Mode m)
         
     }
 }
+
+nrf::Mode Nrf24l01p::getMode()
+{
+    nrf::Mode mode = nrf::Mode::PowerDown;
+    uint8_t config = readRegister(nrf::reg::CONFIG);
+
+    if(config & nrf::bit::config::PWR_UP)
+    {
+        if(ce_pin)
+        {
+            if(config & nrf::bit::config::PRIM_RX)
+            {
+                mode = nrf::Mode::Rx;
+            }
+            else
+            {
+                mode = nrf::Mode::Tx;
+            }
+        }
+        else
+        {
+            mode = nrf::Mode::Standby;
+        }
+    }
+    else
+    {
+        mode = nrf::Mode::Standby;
+    }
+    return mode;
+}
 //--------------------- Level 2 - Config ----------------------------
 void Nrf24l01p::setDataRate(nrf::datarate dr)
 {

@@ -8,11 +8,11 @@ namespace nrf
 {
     enum class Mode
     {
-        Uninitialised,
-        PowerDown,
-        Standby,
-        Tx,
-        Rx
+        Uninitialised   = 0,
+        PowerDown       = 1,
+        Standby         = 2,
+        Tx              = 3,
+        Rx              = 4
     };
 
     namespace reg
@@ -168,7 +168,8 @@ public:
     void transmit_Rx(uint8_t *payload, uint8_t size);
     void wait_transmit();
     //--------------------- Level 3 - Modes ----------------------------
-    void setMode(nrf::Mode m);
+    void        setMode(nrf::Mode m);
+    nrf::Mode   getMode();
     //--------------------- Level 2 - Config ----------------------------
     void setDataRate(nrf::datarate dr);
     void selectChannel(uint8_t chan);//2400 + ch (MHz) [2400->2525] (0->125)

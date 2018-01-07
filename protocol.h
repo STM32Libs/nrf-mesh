@@ -91,11 +91,21 @@ namespace rf
         uint8_t const get_channel  = 0x0A;
         //Mesh
         uint8_t const send     = 0x20;
+        uint8_t const set_mode = 0x21;
+        uint8_t const get_mode = 0x22;
         //Functions
         uint8_t const set_rx        = 0x30;
         uint8_t const test_rf       = 0x31;
         uint8_t const set_retries   = 0x32;
         uint8_t const set_ack_delay = 0x33;
+    }
+
+    namespace mode
+    {
+        uint8_t const power_down    = 0x01;
+        uint8_t const standby       = 0x02;
+        uint8_t const tx_tdby2      = 0x03;
+        uint8_t const rx            = 0x04;
     }
     
     namespace set_rx
