@@ -6,10 +6,8 @@
 #include "utils.h"
 
 //DigitalOut debug_rf(PB_13);
-#define DEBUG_CRC_FAIL 0
-
-#define DEBUG_SIZE_FAIL 1
-#define DEBUG_CRC_FAIL  1
+#define DEBUG_SIZE_FAIL 0
+#define DEBUG_CRC_FAIL  0
 
 #define NRF_NUM (1)
 
