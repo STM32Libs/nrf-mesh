@@ -8,6 +8,9 @@
 //DigitalOut debug_rf(PB_13);
 #define DEBUG_CRC_FAIL 0
 
+#define DEBUG_SIZE_FAIL 1
+#define DEBUG_CRC_FAIL  1
+
 #define NRF_NUM (1)
 
 static uint32_t nrf_handlers[NRF_NUM] = {0};
@@ -559,6 +562,19 @@ void RfMesh::broadcast_byte(uint8_t v_pid,uint8_t val,uint8_t ttl)
     crc::set(brc_message);
     //print_tab(pser,brc_message,5);
     nrf.transmit_Rx(brc_message,7);// 5 + 2 for crc
+}
+
+void RfMesh::broadcast_int16(uint8_t v_pid,int16_t val,uint8_t ttl)
+{
+    brc_message[rf::ind::control]   = rf::ctr::Broadcast | ttl;
+    brc_message[rf::ind::pid]       = v_pid;
+    brc_message[rf::ind::source]    = g_nodeId;
+    brc_message[4] = val>>8;
+    brc_message[5] = val & 0xFF;
+    brc_message[rf::ind::size] = 6;
+    crc::set(brc_message);
+    //print_tab(pser,brc_message,6);
+    nrf.transmit_Rx(brc_message,8);// 6 + 2 for crc
 }
 
 uint8_t RfMesh::test_rf(uint8_t target,uint8_t channel,uint8_t nb_ping)
