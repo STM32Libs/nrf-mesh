@@ -450,26 +450,6 @@ uint8_t RfMesh::send_msg(uint8_t* buf)
 }
 
 //can only be called from main due to wait_ms() in send_check_ack()
-uint8_t RfMesh::broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl)
-{
-    p2p_message[rf::ind::control]   = rf::ctr::Broadcast | ttl;//ttl = 1 ; bridge high power max one jump
-    p2p_message[rf::ind::pid]   =  rf::pid::light_rgb;
-    p2p_message[rf::ind::source]= g_nodeId;
-    p2p_message[4]  = lrgb[0] >> 8;      //MSB first
-    p2p_message[5]  = lrgb[0] & 0xFF;    //LSB
-    p2p_message[6]  = lrgb[1] >> 8;      //MSB first
-    p2p_message[7]  = lrgb[1] & 0xFF;    //LSB
-    p2p_message[8]  = lrgb[2] >> 8;      //MSB first
-    p2p_message[9] = lrgb[2] & 0xFF;    //LSB
-    p2p_message[10] = lrgb[3] >> 8;      //MSB first
-    p2p_message[11] = lrgb[3] & 0xFF;    //LSB
-    p2p_message[rf::ind::size]  = 12;
-    crc::set(p2p_message);
-    //print_tab(pser,p2p_message,14);
-    return send_retries();
-}
-
-//can only be called from main due to wait_ms() in send_check_ack()
 uint8_t RfMesh::send_rgb(uint8_t dest,uint8_t r,uint8_t g,uint8_t b,bool ask_for_ack,uint8_t ttl)
 {
     uint8_t ack_mask = ask_for_ack?rf::ctr::Send_Ack:0;
@@ -575,12 +555,48 @@ void RfMesh::broadcast_int16(uint8_t v_pid,int16_t val,uint8_t ttl)
     nrf.transmit_Rx(brc_message,8);// 6 + 2 for crc
 }
 
+void RfMesh::broadcast_int32(uint8_t v_pid,int32_t val,uint8_t ttl)
+{
+    brc_message[rf::ind::control]   = rf::ctr::Broadcast | ttl;
+    brc_message[rf::ind::pid]       = v_pid;
+    brc_message[rf::ind::source]    = g_nodeId;
+    brc_message[4] = val>>24;
+    brc_message[5] = (val>>16)  & 0xFF;
+    brc_message[6] = (val>>8)   & 0xFF;
+    brc_message[7] = val        & 0xFF;
+    brc_message[rf::ind::size] = 8;
+    crc::set(brc_message);
+    //print_tab(pser,brc_message,8);
+    nrf.transmit_Rx(brc_message,10);// 8 + 2 for crc
+}
+
+//can only be called from main due to wait_ms() in send_check_ack()
+void RfMesh::broadcast_light_rgb(uint16_t *lrgb,uint8_t ttl)
+{
+    brc_message[rf::ind::control]   = rf::ctr::Broadcast | ttl;//ttl = 1 ; bridge high power max one jump
+    brc_message[rf::ind::pid]   =  rf::pid::light_rgb;
+    brc_message[rf::ind::source]= g_nodeId;
+    brc_message[4]  = lrgb[0] >> 8;      //MSB first
+    brc_message[5]  = lrgb[0] & 0xFF;    //LSB
+    brc_message[6]  = lrgb[1] >> 8;      //MSB first
+    brc_message[7]  = lrgb[1] & 0xFF;    //LSB
+    brc_message[8]  = lrgb[2] >> 8;      //MSB first
+    brc_message[9] = lrgb[2] & 0xFF;    //LSB
+    brc_message[10] = lrgb[3] >> 8;      //MSB first
+    brc_message[11] = lrgb[3] & 0xFF;    //LSB
+    brc_message[rf::ind::size]  = 12;
+    crc::set(brc_message);
+    //print_tab(pser,brc_message,14);
+    nrf.transmit_Rx(brc_message,14);// 12 + 2 for crc
+}
+
 uint8_t RfMesh::test_rf(uint8_t target,uint8_t channel,uint8_t nb_ping)
 {
     uint8_t nb_success = 0;
     //------------------------ Switch to Test Params ------------------------
     uint8_t bkp_nbret = getRetries();
     uint8_t bkp_chan = nrf.getChannel();
+    uint16_t bkp_p2p_ack_delay = p2p_ack_delay;
     if(bkp_chan != channel)
     {
         //pser->printf("switch_from:%u;to:%u\n",bkp_chan,channel);
@@ -597,6 +613,7 @@ uint8_t RfMesh::test_rf(uint8_t target,uint8_t channel,uint8_t nb_ping)
         //pser->printf("switch_chan:not_required;chan:%u\n",channel);
     }
     setRetries(1);
+	setAckDelay(2);
     //RF commands handled from main loop that has a loop_delay
     wait_ms(20);
     //------------------------ RF Test ------------------------
@@ -606,6 +623,7 @@ uint8_t RfMesh::test_rf(uint8_t target,uint8_t channel,uint8_t nb_ping)
     }
     //------------------------ Restore Params ------------------------
 	setRetries(bkp_nbret);
+	setAckDelay(bkp_p2p_ack_delay);
     if(bkp_chan != channel)
     {
         uint8_t is_success = send_cmd_byte(target,rf::exec_cmd::set_channel,bkp_chan);
