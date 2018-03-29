@@ -273,6 +273,8 @@ RfMesh::RfMesh(Serial *ps,uint8_t spi_mod,PinName ce, PinName csn, PinName sck, 
     //current implementation with a single instance
 }
 
+#define TEST_LOW_DATARATE 0
+
 void RfMesh::init(uint8_t chan)
 {
     wait_ms(100);//Let the Power get stable
@@ -307,8 +309,13 @@ void RfMesh::init(uint8_t chan)
     nrf.setMode(nrf::Mode::Standby);//PowerUp
 
 
-    //pser->printf("set_DataRate(2Mbps)\r\n");
-    nrf.setDataRate(nrf::datarate::d_2Mbps);
+	#if (TEST_LOW_DATARATE == 1)
+        nrf.setDataRate(nrf::datarate::d_1Mbps);
+		pser->printf(" => test datarate : 1 Mbps\n");
+    #else
+        //pser->printf("set_DataRate(2Mbps)\r\n");
+        nrf.setDataRate(nrf::datarate::d_2Mbps);
+	#endif
     //pser->printf("set_CrcConfig(NoCrc)\r\n");
     nrf.setCrcConfig(nrf::crc::NoCrc);
     //pser->printf("set_RF_Channel(2) 2402 MHz\r\n");
