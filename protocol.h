@@ -60,7 +60,7 @@ namespace rf
         uint8_t const alive         = 0x05;
         uint8_t const button        = 0x06;
         uint8_t const light         = 0x07;//light sensing 16-bit
-        uint8_t const temperature   = 0x08;//int16_t x100
+        uint8_t const temperature   = 0x08;//int32_t x 100
         uint8_t const heat          = 0x09;//is temperature heating order
         uint8_t const bme280        = 0x0A;
         uint8_t const rgb           = 0x0B;
@@ -69,8 +69,9 @@ namespace rf
         uint8_t const light_rgb     = 0x0E;//sensing light in luminance and colors 4x(16-bit / channel)
         uint8_t const gesture       = 0x0F;//APDS gesture sensor
         uint8_t const proximity     = 0x10;//APDS proximity sensor
-        uint8_t const humidity      = 0x11;//int16_t x100
-        uint8_t const pressure      = 0x12;//int16_t x100
+        uint8_t const humidity      = 0x11;//int32_t x 100
+        uint8_t const pressure      = 0x12;//int32_t x 100
+        uint8_t const acceleration  = 0x13;//x3 int16_t (x,y,z)
 
         //test_rf_resp is not using req resp, because the both request and response
         // needs to be acknowledged so considered as messages
