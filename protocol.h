@@ -59,7 +59,7 @@ namespace rf
         uint8_t const reset         = 0x04;
         uint8_t const alive         = 0x05;
         uint8_t const button        = 0x06;
-        uint8_t const light         = 0x07;//light sensing 16-bit
+        uint8_t const light         = 0x07;//light MAX44009 2 Bytes [MSB][4LSb]
         uint8_t const temperature   = 0x08;//int32_t x 100
         uint8_t const heat          = 0x09;//is temperature heating order
         uint8_t const bme280        = 0x0A;
@@ -72,6 +72,8 @@ namespace rf
         uint8_t const humidity      = 0x11;//int32_t x 100
         uint8_t const pressure      = 0x12;//int32_t x 100
         uint8_t const acceleration  = 0x13;//x3 int16_t (x,y,z)
+        uint8_t const light_n       = 0x14;//light sensing 16-bit [MSB][LSB]
+        uint8_t const battery       = 0x15;//battery in milivots 16 bits [MSB][LSB]
 
         //test_rf_resp is not using req resp, because the both request and response
         // needs to be acknowledged so considered as messages
@@ -139,8 +141,17 @@ class Proto
         void print_light_rgb(uint8_t *rxPayload);
         void fill_light_paylod(uint16_t light,uint8_t *rxPayload);
         void print_light(uint8_t *rxPayload);
+        void print_light_uint32(uint8_t *rxPayload);
+        void print_new_light(uint8_t *rxPayload);
         void print_magnet(uint8_t *rxPayload);
+        void print_battery(uint8_t *rxPayload);
         void print_bme280(uint8_t *rxPayload);
+        void print_bme280_values(uint8_t nodeid,uint8_t *rxPayload);
+        int32_t get_int32(uint8_t *rxPayload);
+        uint32_t get_uint32(uint8_t *rxPayload);
+        void print_acceleration(uint8_t *rxPayload);
+        void print_accell(uint8_t *data);
+        void printf_f2(int32_t val);
     public:
         Serial      *pser;
 };
