@@ -58,7 +58,7 @@ void Proto::print_light_uint32(uint8_t *data)
 			 light |= data[2] << 16;
 			 light |= data[1] <<  8;
 			 light |= data[0];
-	pser->printf("light_u:%u\r",light);
+	pser->printf("light:%u\r",light);
 }
 
 void Proto::print_new_light(uint8_t *rxPayload)
@@ -96,7 +96,13 @@ void Proto::print_bme280_values(uint8_t nodeid,uint8_t *data)
 			temp |= data[1] << 16;
 			temp |= data[2] <<  8;
 			temp |= data[3];
-	pser->printf("temperatureX100:%d\r",temp);
+	int32_t mst = temp / 100;
+	int32_t lst = temp % 100;
+	if(lst<0)
+	{
+		lst*=-1;
+	}
+	pser->printf("temperature:%d.%02d\r",mst,lst);//tested with -1223 => -12.23
 	uint32_t hum  = data[4] << 24;
 			 hum |= data[5] << 16;
 			 hum |= data[6] <<  8;
@@ -108,9 +114,9 @@ void Proto::print_bme280_values(uint8_t nodeid,uint8_t *data)
 			 press |= data[9]  << 16;
 			 press |= data[10] <<  8;
 			 press |= data[11];
-	uint32_t msp = press>>8;
-	uint32_t lsp = hum & 0xFF;
-	pser->printf("NodeId:%u;pressure:%u.%u\r",nodeid,msp,lsp);
+	uint32_t msp = press / (256 * 100);
+	uint32_t lsp = (press/256) % 100;
+	pser->printf("NodeId:%u;pressure:%u.%02u\r",nodeid,msp,lsp);
 }
 
 void Proto::print_bme280(uint8_t *rxPayload)
